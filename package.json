@@ -5,9 +5,11 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
-    "lint": "turbo lint"
+    "lint": "turbo lint",
+    "lint:fix": "turbo lint:fix"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.0.0",
     "@workspace/typescript-config": "workspace:*",
     "turbo": "^2.4.2",
     "typescript": "5.7.3"
