@@ -4,16 +4,18 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
 
   workflow_dispatch:
-
-permissions:
-  contents: read
-  packages: write
 
 jobs:
   cd:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout main
