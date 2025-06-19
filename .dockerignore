@@ -3,3 +3,9 @@ node_modules/
 .vercel/
 .next/
 vendor/
+.dockerignore
+.git/
+.github/
+.gitignore
+.golangci.yaml
+biome.json

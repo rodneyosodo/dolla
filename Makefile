@@ -1,8 +1,5 @@
 DOCKER_IMAGE_NAME_PREFIX ?= ghcr.io/rodneyosodo/dolla
 BUILD_DIR = build
-SERVICE = backend
-DOCKER = $(addprefix docker_,$(SERVICE))
-DOCKER_DEV = $(addprefix docker_dev_,$(SERVICE))
 CGO_ENABLED ?= 0
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
@@ -13,51 +10,62 @@ COMMIT_TIME ?= $(shell git log -1 --date=format:"%Y-%m-%dT%H:%M:%S%z" --format=%
 
 define compile_go_service
 	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) \
-	go build -ldflags "-s -w" -o ${BUILD_DIR}/$(SERVICE) apps/$(SERVICE)/cmd/main.go
+	go build -ldflags "-s -w" -o ${BUILD_DIR}/backend apps/backend/cmd/main.go
 endef
 
-define make_docker
-	docker buildx build \
+define make_docker_backend
+	docker build \
 		--no-cache \
 		--build-arg GOOS=$(GOOS) \
 		--build-arg GOARCH=$(GOARCH) \
-		--tag=$(DOCKER_IMAGE_NAME_PREFIX)/$(SERVICE):$(VERSION) \
-		--tag=$(DOCKER_IMAGE_NAME_PREFIX)/$(SERVICE):latest \
+		--tag=$(DOCKER_IMAGE_NAME_PREFIX)/backend:$(VERSION) \
+		--tag=$(DOCKER_IMAGE_NAME_PREFIX)/backend:latest \
 		-f apps/backend/Dockerfile .
 endef
 
-define make_docker_dev
+define make_docker_ui
 	docker build \
 		--no-cache \
-		--tag=$(DOCKER_IMAGE_NAME_PREFIX)/$(SERVICE):$(VERSION) \
-		--tag=$(DOCKER_IMAGE_NAME_PREFIX)/$(SERVICE):latest \
+		--tag=$(DOCKER_IMAGE_NAME_PREFIX)/$(1):$(VERSION) \
+		--tag=$(DOCKER_IMAGE_NAME_PREFIX)/$(1):latest \
+		-f apps/$(1)/Dockerfile .
+endef
+
+define make_docker_dev_backend
+	docker build \
+		--no-cache \
+		--tag=$(DOCKER_IMAGE_NAME_PREFIX)/backend:$(VERSION) \
+		--tag=$(DOCKER_IMAGE_NAME_PREFIX)/backend:latest \
 		-f apps/backend/Dockerfile.dev .
 endef
 
-all: $(SERVICE)
-
-.PHONY: all $(SERVICE) docker docker_dev latest release
+all: backend
 
 clean:
 	rm -rf ${BUILD_DIR}
 
-$(SERVICE):
+backend:
 	$(call compile_go_service)
 
-$(DOCKER):
-	$(call make_docker)
+docker_backend:
+	$(call make_docker_backend)
 
-$(DOCKER_DEV):
-	$(call make_docker_dev)
+docker_dev_backend:
+	$(call make_docker_dev_backend)
 
-docker: $(DOCKER)
-docker_dev: $(DOCKER_DEV)
+docker_ui_dashboard:
+	$(call make_docker_ui,dashboard)
+
+docker_ui_web:
+	$(call make_docker_ui,web)
 
 define docker_push
-	docker push $(DOCKER_IMAGE_NAME_PREFIX)/$(SERVICE):$(1)
+	docker push $(DOCKER_IMAGE_NAME_PREFIX)/backend:$(1)
+	docker push $(DOCKER_IMAGE_NAME_PREFIX)/web:$(1)
+	docker push $(DOCKER_IMAGE_NAME_PREFIX)/dashboard:$(1)
 endef
 
-latest: docker
+latest: docker_backend docker_ui_dashboard docker_ui_web
 	$(call docker_push,latest)
 
 lint:
