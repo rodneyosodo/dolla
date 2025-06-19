@@ -1,0 +1,72 @@
+DOCKER_IMAGE_NAME_PREFIX ?= ghcr.io/rodneyosodo/dolla
+BUILD_DIR = build
+CGO_ENABLED ?= 0
+GOOS ?= $(shell go env GOOS)
+GOARCH ?= $(shell go env GOARCH)
+VERSION ?= $(shell git describe --abbrev=0 --tags 2>/dev/null || echo "v0.0.0")
+COMMIT ?= $(shell git rev-parse HEAD)
+TIME ?= $(shell date +'%Y-%m-%dT%H:%M:%S%z')
+COMMIT_TIME ?= $(shell git log -1 --date=format:"%Y-%m-%dT%H:%M:%S%z" --format=%cd)
+
+define compile_go_service
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) \
+	go build -ldflags "-s -w" -o ${BUILD_DIR}/backend apps/backend/cmd/main.go
+endef
+
+define make_docker_backend
+	docker build \
+		--no-cache \
+		--build-arg GOOS=$(GOOS) \
+		--build-arg GOARCH=$(GOARCH) \
+		--tag=$(DOCKER_IMAGE_NAME_PREFIX)/backend:$(VERSION) \
+		--tag=$(DOCKER_IMAGE_NAME_PREFIX)/backend:latest \
+		-f apps/backend/Dockerfile .
+endef
+
+define make_docker_ui
+	docker build \
+		--no-cache \
+		--tag=$(DOCKER_IMAGE_NAME_PREFIX)/$(1):$(VERSION) \
+		--tag=$(DOCKER_IMAGE_NAME_PREFIX)/$(1):latest \
+		-f apps/$(1)/Dockerfile .
+endef
+
+define make_docker_dev_backend
+	docker build \
+		--no-cache \
+		--tag=$(DOCKER_IMAGE_NAME_PREFIX)/backend:$(VERSION) \
+		--tag=$(DOCKER_IMAGE_NAME_PREFIX)/backend:latest \
+		-f apps/backend/Dockerfile.dev .
+endef
+
+all: backend
+
+clean:
+	rm -rf ${BUILD_DIR}
+
+backend:
+	$(call compile_go_service)
+
+docker_backend:
+	$(call make_docker_backend)
+
+docker_dev_backend:
+	$(call make_docker_dev_backend)
+
+docker_ui_dashboard:
+	$(call make_docker_ui,dashboard)
+
+docker_ui_web:
+	$(call make_docker_ui,web)
+
+define docker_push
+	docker push $(DOCKER_IMAGE_NAME_PREFIX)/backend:$(1)
+	docker push $(DOCKER_IMAGE_NAME_PREFIX)/web:$(1)
+	docker push $(DOCKER_IMAGE_NAME_PREFIX)/dashboard:$(1)
+endef
+
+latest: docker_backend docker_ui_dashboard docker_ui_web
+	$(call docker_push,latest)
+
+lint:
+	golangci-lint run --config apps/backend/.golangci.yaml apps/backend/...

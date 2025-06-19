@@ -1,0 +1,5 @@
+FROM alpine:3.21.3
+
+COPY build/backend /exe
+
+ENTRYPOINT ["/exe"]
