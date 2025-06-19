@@ -68,5 +68,9 @@ endef
 latest: docker_backend docker_ui_dashboard docker_ui_web
 	$(call docker_push,latest)
 
+release: docker_backend docker_ui_dashboard docker_ui_web
+	$(call docker_push,$(VERSION))
+	$(call docker_push,latest)
+
 lint:
 	golangci-lint run --config apps/backend/.golangci.yaml apps/backend/...
