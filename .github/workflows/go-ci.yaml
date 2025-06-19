@@ -1,4 +1,4 @@
-name: TS - CI
+name: GO - CI
 
 on:
   push:
