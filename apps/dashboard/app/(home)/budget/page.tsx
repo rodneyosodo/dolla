@@ -1,17 +1,33 @@
+import { Button } from "@workspace/ui/components/button";
 import { SidebarInset } from "@workspace/ui/components/sidebar";
+import { CirclePlus } from "lucide-react";
 import NavHeader from "@/components/nav-header";
+import { TableDemo } from "./components/table";
 
 export default function Page() {
   return (
     <SidebarInset>
       <NavHeader parent={{ title: "Budget", url: "/budget" }} />
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-          <div className="bg-muted/50 aspect-video rounded-xl" />
-          <div className="bg-muted/50 aspect-video rounded-xl" />
-          <div className="bg-muted/50 aspect-video rounded-xl" />
+      <div className="flex flex-col gap-6 mx-auto p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-2xl font-bold tracking-tight">
+              Monthly Budget
+            </h2>
+            <p className="text-muted-foreground">
+              Here's a list of all your budget items.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline">
+              <CirclePlus className="h-4 w-4 mr-2" />
+              Create New Budget Item
+            </Button>
+          </div>
         </div>
-        <div className="bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-min" />
+        <div className="p-0">
+          <TableDemo />
+        </div>
       </div>
     </SidebarInset>
   );

@@ -14,14 +14,11 @@ import {
   ArrowLeftRight,
   ChartArea,
   Command,
-  Landmark,
   LifeBuoy,
   Notebook,
-  Receipt,
   Send,
-  Wallet,
 } from "lucide-react";
-import * as React from "react";
+import type { ComponentProps } from "react";
 import { NavMain } from "@/components/nav-main";
 import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
@@ -55,38 +52,9 @@ const data = {
       ],
     },
     {
-      title: "Accounts",
-      url: "/accounts",
-      icon: Wallet,
-    },
-    {
       title: "Budget",
       url: "/budget",
       icon: Notebook,
-    },
-    {
-      title: "Bills",
-      url: "/bills",
-      icon: Receipt,
-    },
-    {
-      title: "Investments",
-      url: "#",
-      icon: Landmark,
-      items: [
-        {
-          title: "XYZ MMF",
-          url: "#",
-        },
-        {
-          title: "XYZ Treasury",
-          url: "#",
-        },
-        {
-          title: "XYZ Stocks",
-          url: "#",
-        },
-      ],
     },
   ],
   navSecondary: [
@@ -103,14 +71,14 @@ const data = {
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild className="md:h-8 md:p-2">
-              <a href="#">
+              <a href="/">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                   <Command className="size-4" />
                 </div>
