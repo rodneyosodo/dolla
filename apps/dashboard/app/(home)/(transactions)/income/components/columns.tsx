@@ -147,37 +147,6 @@ export const columns: ColumnDef<Income>[] = [
     enableHiding: true,
   },
   {
-    accessorKey: "is_recurring",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Recurring" />
-    ),
-    cell: ({ row }) => {
-      switch (row.getValue("is_recurring")) {
-        case true:
-          return (
-            <div className="text-green-600 flex space-x-2">
-              <CircleCheck className="mr-2 h-5 w-5" />
-              Yes
-            </div>
-          );
-        case false:
-          return (
-            <div className="text-red-600 flex space-x-2">
-              <CircleX className="mr-2 h-5 w-5" />
-              No
-            </div>
-          );
-        default:
-          return <div className="text-gray-500">Unknown</div>;
-      }
-    },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id));
-    },
-    enableSorting: false,
-    enableHiding: true,
-  },
-  {
     id: "actions",
     cell: ({ row }) => <DataTableRowActions row={row} />,
   },

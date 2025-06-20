@@ -3,6 +3,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@workspace/ui/components/badge";
 import { Checkbox } from "@workspace/ui/components/checkbox";
+import { cn } from "@workspace/ui/lib/utils";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { getExpenseCategoryClassName } from "@/constants/categories";
 import { Expense } from "@/types/schema";
@@ -145,10 +146,8 @@ export const columns: ColumnDef<Expense>[] = [
       }
 
       return (
-        <div className="flex w-[100px] items-center">
-          {status.icon && (
-            <status.icon className="mr-2 h-4 w-4 text-muted-foreground" />
-          )}
+        <div className={cn("flex w-[100px] items-center", status.colour)}>
+          {status.icon && <status.icon className="mr-2 h-4 w-4" />}
           <span>{status.label}</span>
         </div>
       );
