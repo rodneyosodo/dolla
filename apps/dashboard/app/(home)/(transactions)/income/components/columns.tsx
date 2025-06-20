@@ -3,13 +3,13 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@workspace/ui/components/badge";
 import { Checkbox } from "@workspace/ui/components/checkbox";
+import { CircleCheck, CircleX } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
-import { getExpenseCategoryClassName } from "@/constants/categories";
-import { Expense } from "@/types/schema";
-import { statuses } from "../data/status";
+import { getIncomeCategoryClassName } from "@/constants/categories";
+import { Income } from "@/types/schema";
 import { DataTableRowActions } from "./data-table-row-actions";
 
-export const columns: ColumnDef<Expense>[] = [
+export const columns: ColumnDef<Income>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -44,15 +44,15 @@ export const columns: ColumnDef<Expense>[] = [
     enableHiding: true,
   },
   {
-    accessorKey: "merchant",
+    accessorKey: "source",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Merchant" />
+      <DataTableColumnHeader column={column} title="Source" />
     ),
     cell: ({ row }) => {
       return (
         <div className="flex space-x-2">
           <span className="max-w-[100px] truncate ">
-            {row.getValue("merchant")}
+            {row.getValue("source")}
           </span>
         </div>
       );
@@ -70,7 +70,7 @@ export const columns: ColumnDef<Expense>[] = [
         <div className="flex space-x-2">
           <Badge
             variant="outline"
-            className={getExpenseCategoryClassName(row.getValue("category"))}
+            className={getIncomeCategoryClassName(row.getValue("category"))}
           >
             {row.getValue("category") || "Other"}
           </Badge>
@@ -131,27 +131,45 @@ export const columns: ColumnDef<Expense>[] = [
     enableHiding: true,
   },
   {
-    accessorKey: "status",
+    accessorKey: "original_amount",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
+      <DataTableColumnHeader column={column} title="Original Amount" />
     ),
     cell: ({ row }) => {
-      const status = statuses.find(
-        (status) => status.value === row.getValue("status"),
-      );
-
-      if (!status) {
-        return null;
+      const amount = parseFloat(row.getValue("original_amount"));
+      const formatted = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "KSH",
+      }).format(amount);
+      return <div className="font-medium">{formatted}</div>;
+    },
+    enableSorting: true,
+    enableHiding: true,
+  },
+  {
+    accessorKey: "is_recurring",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Recurring" />
+    ),
+    cell: ({ row }) => {
+      switch (row.getValue("is_recurring")) {
+        case true:
+          return (
+            <div className="text-green-600 flex space-x-2">
+              <CircleCheck className="mr-2 h-5 w-5" />
+              Yes
+            </div>
+          );
+        case false:
+          return (
+            <div className="text-red-600 flex space-x-2">
+              <CircleX className="mr-2 h-5 w-5" />
+              No
+            </div>
+          );
+        default:
+          return <div className="text-gray-500">Unknown</div>;
       }
-
-      return (
-        <div className="flex w-[100px] items-center">
-          {status.icon && (
-            <status.icon className="mr-2 h-4 w-4 text-muted-foreground" />
-          )}
-          <span>{status.label}</span>
-        </div>
-      );
     },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));

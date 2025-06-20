@@ -1,46 +1,32 @@
 import { faker } from "@faker-js/faker";
 import fs from "fs";
 import path from "path";
-import { categories } from "../../../../../constants/categories.ts";
+import { income } from "../../../../../constants/categories.ts";
 import { paymentMethods } from "../../../../../constants/payment-methods.ts";
 
-const statuses = ["imported", "reconciled", "canceled"];
-
-const merchants = [
-  "QuickMart",
-  "Naivas",
-  "KPLC",
-  "Nairobi Water",
-  "Safaricom",
-  "Matatu 14",
-  "Uber",
-  "Bolt",
-  "Mama Mboga",
-  "Local Kiosk",
-  "Equity Bank",
-  "KCB Bank",
-  "Cooperative Sacco",
-  "Chemist",
-  "Local Fundi",
-  "Zuku",
-  "DStv",
-  "Kenyatta National Hospital",
-  "ABC Primary School",
-  "Local Butchery",
-  "Shell Petrol Station",
-  "Total Energies",
-  "Car Wash",
-  "Salon Pro",
-  "Barber Shop Deluxe",
-  "Java House",
-  "Artcaffe",
-  "Nyama Choma Place",
-  "Mama Oliech's",
-  "Netflix",
-  "Spotify",
-  "Jumia",
-  "Kilimall",
-  "Boda Boda Rider",
+const sources = [
+  "xyz ltd.",
+  "safaricom plc",
+  "joyce m. (client)",
+  "mama mboga (stall 3)",
+  "jua kali artisan group",
+  "airbnb guest (unit 4)",
+  "agripro ltd.",
+  "zyz consultants",
+  "kcb bank",
+  "equity bank",
+  "(self)",
+  "family support",
+  "government bursary fund",
+  "abc school",
+  "local sacco",
+  "cooperative society",
+  "digital marketing agency",
+  "online survey platform",
+  "friend's business",
+  "real estate agent",
+  "livestock market",
+  "crafts & souvenirs shop",
 ];
 
 const generateTransactions = (count) => {
@@ -58,20 +44,22 @@ const generateTransactions = (count) => {
     return {
       id: faker.string.uuid(),
       date: formattedDate,
-      merchant: faker.helpers.arrayElement(merchants),
-      category: faker.helpers.arrayElement(categories),
+      source: faker.helpers.arrayElement(sources),
+      category: faker.helpers.arrayElement(income),
       description: faker.hacker
         .phrase()
         .replace(/^./, (letter) => letter.toUpperCase()), // Capitalize first letter
       payment_method: faker.helpers.arrayElement(paymentMethods),
       amount: faker.number.int({ min: 100, max: 15000 }),
-      status: faker.helpers.arrayElement(statuses),
+      currency: faker.helpers.arrayElement(["KSH", "USD", "EUR", "GBP"]),
+      is_recurring: faker.datatype.boolean(),
+      original_amount: faker.number.int({ min: 100, max: 15000 }),
     };
   });
   return transactions;
 };
 
-const transactions = generateTransactions(1000);
+const transactions = generateTransactions(100);
 
 const outputPath = path.join(process.cwd(), "transactions.json");
 

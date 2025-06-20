@@ -1,4 +1,4 @@
-export const categories = [
+export const expense = [
   "groceries",
   "utilities",
   "rent / housing",
@@ -28,7 +28,7 @@ export const categories = [
   "gifts / remittances",
 ];
 
-export const getCategoryClassName = (category: string): string => {
+export const getExpenseCategoryClassName = (category: string): string => {
   const classMap: { [key: string]: string } = {
     // Income related - calming and hopeful tones
     "farm produce sales": "bg-teal-300 text-black",
@@ -62,6 +62,42 @@ export const getCategoryClassName = (category: string): string => {
     "savings / investment": "bg-blue-100 text-black",
     "tithe / offerings": "bg-emerald-100 text-black",
     "remittances sent": "bg-cyan-100 text-black",
+  };
+
+  return classMap[category] || "bg-stone-200 text-black";
+};
+
+export const income = [
+  "salary / wages",
+  "freelance / gig work",
+  "business sales / daily sales",
+  "rental income",
+  "dividends",
+  "interest",
+  "farm produce sales",
+  "consulting fees",
+  "commissions",
+  "grants / bursaries",
+  "loan repayment received",
+  "gifts / remittances",
+  "other",
+];
+
+export const getIncomeCategoryClassName = (category: string): string => {
+  const classMap: { [key: string]: string } = {
+    "salary / wages": "bg-emerald-300 text-black",
+    "freelance / gig work": "bg-lime-300 text-black",
+    "business sales / daily sales": "bg-sky-300 text-black",
+    "rental income": "bg-cyan-300 text-black",
+    dividends: "bg-indigo-300 text-black",
+    interest: "bg-violet-300 text-black",
+    "farm produce sales": "bg-teal-300 text-black",
+    "consulting fees": "bg-green-300 text-black",
+    commissions: "bg-blue-300 text-black",
+    "grants / bursaries": "bg-rose-200 text-black",
+    "loan repayment received": "bg-amber-200 text-black",
+    "gifts / remittances": "bg-yellow-200 text-black",
+    other: "bg-stone-200 text-black",
   };
 
   return classMap[category] || "bg-stone-200 text-black";
