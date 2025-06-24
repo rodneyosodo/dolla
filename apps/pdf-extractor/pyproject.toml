@@ -1,0 +1,20 @@
+[project]
+name = "pdf-extractor"
+version = "0.0.3"
+description = "Simple microservice to extract text and tables from a PDF file."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "aiofiles>=24.1.0",
+    "fastapi>=0.115.13",
+    "pandas>=2.3.0",
+    "pdfplumber>=0.11.7",
+    "python-multipart>=0.0.20",
+    "uvicorn>=0.34.3",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.12.0",
+    "ty>=0.0.1a11",
+]

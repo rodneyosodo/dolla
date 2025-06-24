@@ -39,6 +39,14 @@ define make_docker_dev_backend
 		-f apps/backend/Dockerfile.dev .
 endef
 
+define make_docker_pdf_extractor
+	docker build \
+		--no-cache \
+		--tag=$(DOCKER_IMAGE_NAME_PREFIX)/pdf-extractor:$(VERSION) \
+		--tag=$(DOCKER_IMAGE_NAME_PREFIX)/pdf-extractor:latest \
+		-f apps/pdf-extractor/Dockerfile apps/pdf-extractor/
+endef
+
 all: backend
 
 clean:
@@ -59,16 +67,20 @@ docker_ui_dashboard:
 docker_ui_web:
 	$(call make_docker_ui,web)
 
+docker_pdf_extractor:
+	$(call make_docker_pdf_extractor)
+
 define docker_push
 	docker push $(DOCKER_IMAGE_NAME_PREFIX)/backend:$(1)
 	docker push $(DOCKER_IMAGE_NAME_PREFIX)/web:$(1)
 	docker push $(DOCKER_IMAGE_NAME_PREFIX)/dashboard:$(1)
+	docker push $(DOCKER_IMAGE_NAME_PREFIX)/pdf-extractor:$(1)
 endef
 
-latest: docker_backend docker_ui_dashboard docker_ui_web
+latest: docker_backend docker_ui_dashboard docker_ui_web docker_pdf_extractor
 	$(call docker_push,latest)
 
-release: docker_backend docker_ui_dashboard docker_ui_web
+release: docker_backend docker_ui_dashboard docker_ui_web docker_pdf_extractor
 	$(call docker_push,$(VERSION))
 	$(call docker_push,latest)
 

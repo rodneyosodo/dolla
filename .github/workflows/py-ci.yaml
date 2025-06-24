@@ -1,0 +1,51 @@
+name: PY - CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/py-ci.yaml"
+      - "**.py"
+      - "apps/pdf-extractor/**"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/py-ci.yaml"
+      - "**.py"
+      - "apps/pdf-extractor/**"
+
+  workflow_dispatch:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "apps/pdf-extractor/uv.lock"
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "apps/pdf-extractor/.python-version"
+
+      - name: Install the project
+        working-directory: apps/pdf-extractor
+        run: uv sync --locked --all-extras --dev
+
+      - name: Run Linter
+        working-directory: apps/pdf-extractor
+        run: uv run ruff check .
+
+      - name: Run Type Checker
+        working-directory: apps/pdf-extractor
+        run: uv run ty check .
