@@ -22,9 +22,6 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/pdf-extractor
 
     steps:
       - name: Checkout
@@ -34,18 +31,21 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          cache-dependency-glob: "uv.lock"
+          cache-dependency-glob: "apps/pdf-extractor/uv.lock"
 
       - name: "Set up Python"
         uses: actions/setup-python@v5
         with:
-          python-version-file: ".python-version"
+          python-version-file: "apps/pdf-extractor/.python-version"
 
       - name: Install the project
+        working-directory: apps/pdf-extractor
         run: uv sync --locked --all-extras --dev
 
       - name: Run Linter
+        working-directory: apps/pdf-extractor
         run: uv run ruff check .
 
       - name: Run Type Checker
+        working-directory: apps/pdf-extractor
         run: uv run ty check .
