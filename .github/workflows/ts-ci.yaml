@@ -48,3 +48,6 @@ jobs:
 
       - name: Run Build
         run: pnpm run build
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
