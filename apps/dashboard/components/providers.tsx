@@ -6,7 +6,12 @@ import * as React from "react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      publishableKey={
+        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+        "pk_test_YXJyaXZpbmctbGVtbWluZy0yOS5jbGVyay5hY2NvdW50cy5kZXYk"
+      }
+    >
       <NextThemesProvider
         attribute="class"
         defaultTheme="system"
