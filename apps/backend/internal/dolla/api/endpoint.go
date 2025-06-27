@@ -203,5 +203,7 @@ func createTransactions(svc dolla.Service) func(c *gin.Context) {
 
 			return
 		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "ok"})
 	}
 }

@@ -100,6 +100,11 @@ func toIncome(response ExtractionResponse) []Income {
 				continue
 			}
 
+			description := strings.TrimSpace(table.Two)
+			if description == "" {
+				return nil
+			}
+
 			if amount > 0 {
 				income := Income{
 					BaseEntity: BaseEntity{
@@ -110,13 +115,13 @@ func toIncome(response ExtractionResponse) []Income {
 						},
 					},
 					Date:           Date{date},
-					Source:         toSource(table.Two),
-					Category:       toCategory(table.Two),
-					Description:    table.Two,
-					PaymentMethod:  toPaymentMethod(table.Two),
+					Source:         extractSource(description),
+					Category:       toCategory(description),
+					Description:    description,
+					PaymentMethod:  toPaymentMethod(description),
 					Amount:         amount,
 					Currency:       "KES",
-					IsRecurring:    isRecurringTransaction(table.Two),
+					IsRecurring:    isRecurringTransaction(description),
 					OriginalAmount: amount,
 					Status:         Imported,
 				}
@@ -143,6 +148,11 @@ func toExpense(response ExtractionResponse) []Expense {
 				continue
 			}
 
+			description := strings.TrimSpace(table.Two)
+			if description == "" {
+				return nil
+			}
+
 			if amount > 0 {
 				date, err := time.Parse(time.DateTime, table.One)
 				if err != nil {
@@ -158,10 +168,10 @@ func toExpense(response ExtractionResponse) []Expense {
 						},
 					},
 					Date:          Date{date},
-					Merchant:      toSource(table.Two),
-					Category:      toCategory(table.Two),
-					Description:   table.Two,
-					PaymentMethod: toPaymentMethod(table.Two),
+					Merchant:      extractMerchant(description),
+					Category:      toCategory(description),
+					Description:   description,
+					PaymentMethod: toPaymentMethod(description),
 					Amount:        amount,
 					Status:        Imported,
 				}
@@ -173,23 +183,103 @@ func toExpense(response ExtractionResponse) []Expense {
 	return expenses
 }
 
-func toSource(description string) string {
+func extractSource(description string) string {
 	description = strings.ToUpper(description)
-	splits := strings.Split(description, "\n")
+	lines := strings.Split(description, "\n")
 
-	return splits[len(splits)-1]
+	if len(lines) > 0 {
+		return strings.TrimSpace(lines[len(lines)-1])
+	}
+
+	return "Unknown Source"
 }
 
-func toCategory(description string) Category {
+func extractMerchant(description string) string {
+	description = strings.ToUpper(description)
+	lines := strings.Split(description, "\n")
+
+	if len(lines) > 0 {
+		merchant := strings.TrimSpace(lines[len(lines)-1])
+
+		merchant = strings.ReplaceAll(merchant, "PAYBILL", "")
+		merchant = strings.ReplaceAll(merchant, "TILL", "")
+		merchant = strings.TrimSpace(merchant)
+		if merchant != "" {
+			return merchant
+		}
+	}
+
+	return "Unknown Merchant"
+}
+
+func toCategory(description string) Category { //nolint:cyclop
 	description = strings.ToUpper(description)
 
 	switch {
-	case strings.Contains(description, "FUNDS RECEIVED"):
+	case strings.Contains(description, "SALARY"), strings.Contains(description, "WAGES"):
+		return SalaryWages
+	case strings.Contains(description, "BUSINESS PAYMENT"), strings.Contains(description, "FREELANCE"),
+		strings.Contains(description, "COMMISSION"), strings.Contains(description, "CONSULTING"):
+		return FreelanceGigWork
+	case strings.Contains(description, "TRANSFER FROM BANK"), strings.Contains(description, "LOAN DISBURSEMENT"):
+		return FreelanceGigWork
+	case strings.Contains(description, "FUNDS RECEIVED"), strings.Contains(description, "GIFT"),
+		strings.Contains(description, "FAMILY"), strings.Contains(description, "RELATIVE"):
 		return GiftsRemittances
-	case strings.Contains(description, "TRANSFER FROM BANK"):
-		return FreelanceGigWork
-	case strings.Contains(description, "BUSINESS PAYMENT"):
-		return FreelanceGigWork
+	case strings.Contains(description, "RENT"), strings.Contains(description, "RENTAL"):
+		return RentalIncome
+	case strings.Contains(description, "INTEREST"), strings.Contains(description, "DIVIDEND"):
+		return Interest
+	case strings.Contains(description, "FARM"), strings.Contains(description, "PRODUCE"),
+		strings.Contains(description, "HARVEST"):
+		return FarmProduceSales
+	case strings.Contains(description, "SALE"), strings.Contains(description, "SHOP"),
+		strings.Contains(description, "CUSTOMER"):
+		return BusinessSalesDaily
+
+	case strings.Contains(description, "KPLC"), strings.Contains(description, "ELECTRICITY"),
+		strings.Contains(description, "WATER"), strings.Contains(description, "NAIROBI WATER"),
+		strings.Contains(description, "ELECTRICITY BILL"):
+		return Utilities
+	case strings.Contains(description, "SUPERMARKET"), strings.Contains(description, "GROCERY"),
+		strings.Contains(description, "NAIVAS"), strings.Contains(description, "TUSKYS"),
+		strings.Contains(description, "CARREFOUR"), strings.Contains(description, "QUICKMART"):
+		return Groceries
+	case strings.Contains(description, "UBER"), strings.Contains(description, "BOLT"),
+		strings.Contains(description, "MATATU"), strings.Contains(description, "BUS"),
+		strings.Contains(description, "FUEL"), strings.Contains(description, "PETROL"):
+		return Transport
+	case strings.Contains(description, "AIRTIME"), strings.Contains(description, "DATA"),
+		strings.Contains(description, "SAFARICOM"), strings.Contains(description, "AIRTEL"):
+		return AirtimeData
+	case strings.Contains(description, "RESTAURANT"), strings.Contains(description, "HOTEL"),
+		strings.Contains(description, "CAFE"), strings.Contains(description, "KFC"),
+		strings.Contains(description, "PIZZA"):
+		return FoodDiningOut
+	case strings.Contains(description, "HOSPITAL"), strings.Contains(description, "CLINIC"),
+		strings.Contains(description, "PHARMACY"), strings.Contains(description, "DOCTOR"):
+		return Health
+	case strings.Contains(description, "SCHOOL"), strings.Contains(description, "UNIVERSITY"),
+		strings.Contains(description, "COLLEGE"), strings.Contains(description, "TUITION"):
+		return Education
+	case strings.Contains(description, "CINEMA"), strings.Contains(description, "MOVIE"),
+		strings.Contains(description, "NETFLIX"), strings.Contains(description, "SHOWMAX"):
+		return Entertainment
+	case strings.Contains(description, "CLOTHING"), strings.Contains(description, "FASHION"),
+		strings.Contains(description, "SHOES"):
+		return Clothing
+	case strings.Contains(description, "TITHE"), strings.Contains(description, "OFFERING"),
+		strings.Contains(description, "CHURCH"), strings.Contains(description, "DONATION"):
+		return TitheOfferings
+	case strings.Contains(description, "LOAN"), strings.Contains(description, "CREDIT"),
+		strings.Contains(description, "REPAYMENT"):
+		return LoanRepayment
+	case strings.Contains(description, "SALON"), strings.Contains(description, "BARBER"),
+		strings.Contains(description, "SPA"):
+		return PersonalCare
+	case strings.Contains(description, "SAVINGS"), strings.Contains(description, "INVESTMENT"),
+		strings.Contains(description, "SACCO"):
+		return SavingsInvestment
 	default:
 		return OtherCategory
 	}
@@ -199,12 +289,27 @@ func toPaymentMethod(description string) PaymentMethod {
 	description = strings.ToUpper(description)
 
 	switch {
-	case strings.Contains(description, "TRANSFER FROM BANK"):
+	case strings.Contains(description, "TRANSFER FROM BANK"), strings.Contains(description, "BANK TRANSFER"):
 		return BankTransfer
-	case strings.Contains(description, "BUSINESS PAYMENT"):
+	case strings.Contains(description, "BUSINESS PAYMENT"), strings.Contains(description, "PAYBILL"),
+		strings.Contains(description, "PAY BILL"):
 		return MpesaPaybill
+	case strings.Contains(description, "TILL"), strings.Contains(description, "BUY GOODS"):
+		return MpesaTill
+	case strings.Contains(description, "SEND MONEY"), strings.Contains(description, "SENT TO"),
+		strings.Contains(description, "RECEIVED FROM"):
+		return MpesaSendMoney
+	case strings.Contains(description, "CASH"), strings.Contains(description, "WITHDRAW"),
+		strings.Contains(description, "AGENT"):
+		return Cash
+	case strings.Contains(description, "AIRTEL MONEY"):
+		return AirtelMoney
+	case strings.Contains(description, "EQUITEL"):
+		return EquitelMoney
+	case strings.Contains(description, "T-KASH"):
+		return Tkash
 	default:
-		return OtherMethod
+		return MpesaOnline
 	}
 }
 
@@ -212,7 +317,16 @@ func isRecurringTransaction(description string) bool {
 	description = strings.ToUpper(description)
 
 	recurringPatterns := []string{
-		"SUBSCRIPTION", "RENT", "SALARY",
+		// Income patterns
+		"SALARY", "WAGES", "PENSION", "ALLOWANCE",
+		"RENTAL INCOME", "DIVIDEND", "INTEREST",
+		// Expense patterns
+		"SUBSCRIPTION", "RENT", "RENTAL", "LEASE",
+		"INSURANCE", "LOAN REPAYMENT", "MORTGAGE",
+		"SCHOOL FEES", "TUITION", "TITHE",
+		"NETFLIX", "SHOWMAX", "DSTV", "GOTV",
+		"GYM MEMBERSHIP", "MONTHLY", "WEEKLY",
+		"UTILITIES", "KPLC", "WATER BILL",
 	}
 
 	for _, pattern := range recurringPatterns {
