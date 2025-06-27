@@ -11,7 +11,6 @@ from starlette.background import BackgroundTask
 import logging
 from concurrent.futures import ProcessPoolExecutor
 import asyncio
-from pydantic import BaseModel
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,11 +24,6 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 max_workers = os.cpu_count() or 1
 executor = ProcessPoolExecutor(max_workers=max_workers)
-
-
-class ExtractionRequest(BaseModel):
-    output_format: str = "json"
-    callback_url: Optional[str] = None
 
 
 def sync_extract_text(pdf_path: str):
@@ -124,14 +118,10 @@ async def cleanup_files(*files):
 @app.post("/extract")
 async def extract_from_pdf(
     file: UploadFile,
-    request: ExtractionRequest,
     output_format: Optional[str] = "json",
     callback_url: Optional[str] = None,
 ):
     """Endpoint for PDF extraction"""
-    if request:
-        output_format = request.output_format
-        callback_url = request.callback_url
     if output_format is None:
         output_format = "json"
 

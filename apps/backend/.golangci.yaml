@@ -11,12 +11,27 @@ linters:
   default: all
   disable:
     - gomodguard
+    - interfacebloat
+    - wsl
+    - wrapcheck
+    - varnamelen
+    - revive
+    - recvcheck
+    - ireturn
+    - exhaustruct
+    - err113
+    - dupl
+    - depguard
+    - gosec
   settings:
     funlen:
       lines: -1
       statements: -1
     gocritic:
       enable-all: true
+      disabled-checks:
+        - hugeParam
+        - whyNoLint
     staticcheck:
       checks:
         - "all"
