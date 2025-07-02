@@ -27,11 +27,11 @@ const (
 )
 
 type config struct {
-	LogLevel        string `env:"ECOMMERCE_LOG_LEVEL"         envDefault:"info"`
-	HTTPAddress     string `env:"ECOMMERCE_HTTP_ADDRESS"      envDefault:":9010"`
-	DBFile          string `env:"ECOMMERCE_DB_FILE"           envDefault:"db.sqlite3"`
-	GinMode         string `env:"ECOMMERCE_GIN_MODE"          envDefault:"release"`
-	PDFExtractorURL string `env:"ECOMMERCE_PDF_EXTRACTOR_URL" envDefault:"http://localhost:9000/extract"`
+	LogLevel        string `env:"DOLLA_BACKEND_LOG_LEVEL"         envDefault:"info"`
+	HTTPAddress     string `env:"DOLLA_BACKEND_HTTP_ADDRESS"      envDefault:":9010"`
+	DBFile          string `env:"DOLLA_BACKEND_DB_FILE"           envDefault:"db.sqlite3"`
+	GinMode         string `env:"DOLLA_BACKEND_GIN_MODE"          envDefault:"release"`
+	PDFExtractorURL string `env:"DOLLA_BACKEND_PDF_EXTRACTOR_URL" envDefault:"http://localhost:9000/extract"`
 }
 
 func main() {

@@ -50,6 +50,22 @@ const (
 		original_amount REAL,
 		status VARCHAR(255)
 	);
+
+	CREATE TABLE IF NOT EXISTS user_profiles (
+		id UUID PRIMARY KEY,
+		date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		created_by VARCHAR(255),
+		date_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_by VARCHAR(255),
+		active BOOLEAN DEFAULT TRUE,
+		meta JSONB DEFAULT '{}',
+		clerk_user_id VARCHAR(255) UNIQUE NOT NULL,
+		age INTEGER NOT NULL,
+		life_stage VARCHAR(50) NOT NULL,
+		income_bracket VARCHAR(50) NOT NULL,
+		goals TEXT NOT NULL,
+		onboarding_complete BOOLEAN DEFAULT FALSE
+	);
 	`
 )
 
@@ -373,6 +389,139 @@ func (r *sqlite3) DeleteExpense(ctx context.Context, id string) error {
 	query := `DELETE FROM expenses WHERE id = $1`
 	if _, err := r.db.ExecContext(ctx, query, id); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (r *sqlite3) GetUserProfile(ctx context.Context, clerkUserID string) (dolla.UserProfile, error) {
+	query := `
+		SELECT id, date_created, created_by, date_updated, updated_by, active, meta,
+		       clerk_user_id, age, life_stage, income_bracket, goals, onboarding_complete
+		FROM user_profiles 
+		WHERE clerk_user_id = $1 AND active = true
+	`
+
+	var profile dolla.UserProfile
+	var goalsJSON string
+
+	err := r.db.QueryRowContext(ctx, query, clerkUserID).Scan(
+		&profile.ID,
+		&profile.DateCreated,
+		&profile.CreatedBy,
+		&profile.DateUpdated,
+		&profile.UpdatedBy,
+		&profile.Active,
+		&profile.Meta,
+		&profile.ClerkUserID,
+		&profile.Age,
+		&profile.LifeStage,
+		&profile.IncomeBracket,
+		&goalsJSON,
+		&profile.OnboardingComplete,
+	)
+	if err != nil {
+		return dolla.UserProfile{}, err
+	}
+
+	if err := profile.UnmarshalGoals(goalsJSON); err != nil {
+		return dolla.UserProfile{}, fmt.Errorf("failed to unmarshal goals: %w", err)
+	}
+
+	return profile, nil
+}
+
+func (r *sqlite3) CreateUserProfile(ctx context.Context, profile dolla.UserProfile) error {
+	goalsJSON, err := profile.MarshalGoals()
+	if err != nil {
+		return fmt.Errorf("failed to marshal goals: %w", err)
+	}
+
+	query := `
+		INSERT INTO user_profiles (
+			id, date_created, created_by, date_updated, updated_by, active, meta,
+			clerk_user_id, age, life_stage, income_bracket, goals, onboarding_complete
+		) VALUES (
+			:id, :date_created, :created_by, :date_updated, :updated_by, :active, :meta,
+			:clerk_user_id, :age, :life_stage, :income_bracket, :goals, :onboarding_complete
+		)
+	`
+
+	_, err = r.db.NamedExecContext(ctx, query, map[string]interface{}{
+		"id":                  profile.ID,
+		"date_created":        profile.DateCreated,
+		"created_by":          profile.CreatedBy,
+		"date_updated":        profile.DateUpdated,
+		"updated_by":          profile.UpdatedBy,
+		"active":              profile.Active,
+		"meta":                profile.Meta,
+		"clerk_user_id":       profile.ClerkUserID,
+		"age":                 profile.Age,
+		"life_stage":          profile.LifeStage,
+		"income_bracket":      profile.IncomeBracket,
+		"goals":               goalsJSON,
+		"onboarding_complete": profile.OnboardingComplete,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create user profile: %w", err)
+	}
+
+	// Update with goals JSON separately due to mixing named and positional parameters
+	updateQuery := `UPDATE user_profiles SET goals = $1 WHERE id = $2`
+	_, err = r.db.ExecContext(ctx, updateQuery, goalsJSON, profile.ID)
+	if err != nil {
+		return fmt.Errorf("failed to update goals: %w", err)
+	}
+
+	return nil
+}
+
+func (r *sqlite3) UpdateUserProfile(ctx context.Context, profile dolla.UserProfile) error {
+	goalsJSON, err := profile.MarshalGoals()
+	if err != nil {
+		return fmt.Errorf("failed to marshal goals: %w", err)
+	}
+
+	query := `
+		UPDATE user_profiles SET
+			date_updated = :date_updated,
+			updated_by = :updated_by,
+			age = :age,
+			life_stage = :life_stage,
+			income_bracket = :income_bracket,
+			goals = $1,
+			onboarding_complete = :onboarding_complete,
+			meta = :meta
+		WHERE id = :id AND active = true
+	`
+
+	result, err := r.db.NamedExecContext(ctx, query, map[string]interface{}{
+		"id":                  profile.ID,
+		"date_updated":        profile.DateUpdated,
+		"updated_by":          profile.UpdatedBy,
+		"age":                 profile.Age,
+		"life_stage":          profile.LifeStage,
+		"income_bracket":      profile.IncomeBracket,
+		"onboarding_complete": profile.OnboardingComplete,
+		"meta":                profile.Meta,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update user profile: %w", err)
+	}
+
+	// Update goals separately
+	_, err = r.db.ExecContext(ctx, `UPDATE user_profiles SET goals = $1 WHERE id = $2`, goalsJSON, profile.ID)
+	if err != nil {
+		return fmt.Errorf("failed to update goals: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user profile not found or already inactive: %s", profile.ID)
 	}
 
 	return nil
