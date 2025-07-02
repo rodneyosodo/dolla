@@ -124,7 +124,7 @@ func (s *service) CompleteOnboarding(
 	ctx context.Context, clerkUserID string, req OnboardingRequest,
 ) (OnboardingResponse, error) {
 	existingProfile, err := s.repo.GetUserProfile(ctx, clerkUserID)
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return OnboardingResponse{
 			Success: false,
 			Message: "Failed to check existing profile",

@@ -437,6 +437,11 @@ func (r *sqlite3) CreateUserProfile(ctx context.Context, profile dolla.UserProfi
 		return fmt.Errorf("failed to marshal goals: %w", err)
 	}
 
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+
 	query := `
 		INSERT INTO user_profiles (
 			id, date_created, created_by, date_updated, updated_by, active, meta,
@@ -447,7 +452,7 @@ func (r *sqlite3) CreateUserProfile(ctx context.Context, profile dolla.UserProfi
 		)
 	`
 
-	_, err = r.db.NamedExecContext(ctx, query, map[string]interface{}{
+	_, err = tx.NamedExecContext(ctx, query, map[string]interface{}{
 		"id":                  profile.ID,
 		"date_created":        profile.DateCreated,
 		"created_by":          profile.CreatedBy,
@@ -463,14 +468,25 @@ func (r *sqlite3) CreateUserProfile(ctx context.Context, profile dolla.UserProfi
 		"onboarding_complete": profile.OnboardingComplete,
 	})
 	if err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			slog.Error("failed to rollback transaction", slog.String("err", rbErr.Error()))
+		}
+
 		return fmt.Errorf("failed to create user profile: %w", err)
 	}
 
-	// Update with goals JSON separately due to mixing named and positional parameters
 	updateQuery := `UPDATE user_profiles SET goals = $1 WHERE id = $2`
-	_, err = r.db.ExecContext(ctx, updateQuery, goalsJSON, profile.ID)
+	_, err = tx.ExecContext(ctx, updateQuery, goalsJSON, profile.ID)
 	if err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			slog.Error("failed to rollback transaction", slog.String("err", rbErr.Error()))
+		}
+
 		return fmt.Errorf("failed to update goals: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil
@@ -480,6 +496,11 @@ func (r *sqlite3) UpdateUserProfile(ctx context.Context, profile dolla.UserProfi
 	goalsJSON, err := profile.MarshalGoals()
 	if err != nil {
 		return fmt.Errorf("failed to marshal goals: %w", err)
+	}
+
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
 	query := `
@@ -495,7 +516,7 @@ func (r *sqlite3) UpdateUserProfile(ctx context.Context, profile dolla.UserProfi
 		WHERE id = :id AND active = true
 	`
 
-	result, err := r.db.NamedExecContext(ctx, query, map[string]interface{}{
+	result, err := tx.NamedExecContext(ctx, query, map[string]interface{}{
 		"id":                  profile.ID,
 		"date_updated":        profile.DateUpdated,
 		"updated_by":          profile.UpdatedBy,
@@ -506,12 +527,20 @@ func (r *sqlite3) UpdateUserProfile(ctx context.Context, profile dolla.UserProfi
 		"meta":                profile.Meta,
 	})
 	if err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			slog.Error("failed to rollback transaction", slog.String("err", rbErr.Error()))
+		}
+
 		return fmt.Errorf("failed to update user profile: %w", err)
 	}
 
 	// Update goals separately
-	_, err = r.db.ExecContext(ctx, `UPDATE user_profiles SET goals = $1 WHERE id = $2`, goalsJSON, profile.ID)
+	_, err = tx.ExecContext(ctx, `UPDATE user_profiles SET goals = $1 WHERE id = $2`, goalsJSON, profile.ID)
 	if err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			slog.Error("failed to rollback transaction", slog.String("err", rbErr.Error()))
+		}
+
 		return fmt.Errorf("failed to update goals: %w", err)
 	}
 
@@ -522,6 +551,10 @@ func (r *sqlite3) UpdateUserProfile(ctx context.Context, profile dolla.UserProfi
 
 	if rowsAffected == 0 {
 		return fmt.Errorf("user profile not found or already inactive: %s", profile.ID)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil
