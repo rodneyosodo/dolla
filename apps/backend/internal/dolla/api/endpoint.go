@@ -207,3 +207,46 @@ func createTransactions(svc dolla.Service) func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "ok"})
 	}
 }
+
+func getUserProfile(svc dolla.Service) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		clerkUserID := c.Param("clerk_user_id")
+
+		profile, err := svc.GetUserProfile(c.Request.Context(), clerkUserID)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Profile not found"})
+
+			return
+		}
+
+		c.JSON(http.StatusOK, profile)
+	}
+}
+
+func completeOnboarding(svc dolla.Service) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		clerkUserID := c.Param("clerk_user_id")
+
+		var req dolla.OnboardingRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+			return
+		}
+
+		response, err := svc.CompleteOnboarding(c.Request.Context(), clerkUserID, req)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+			return
+		}
+
+		if !response.Success {
+			c.JSON(http.StatusBadRequest, response)
+
+			return
+		}
+
+		c.JSON(http.StatusOK, response)
+	}
+}

@@ -2,6 +2,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { SidebarProvider } from "@workspace/ui/components/sidebar";
 import { ReactNode } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
+import { OnboardingGuard } from "@/components/onboarding-guard";
 
 export default async function RootLayout({
   children,
@@ -21,15 +22,17 @@ export default async function RootLayout({
     "";
 
   return (
-    <SidebarProvider>
-      <AppSidebar
-        user={{
-          name: userName,
-          email: emailAddress,
-          avatar: avatar,
-        }}
-      />
-      {children}
-    </SidebarProvider>
+    <OnboardingGuard>
+      <SidebarProvider>
+        <AppSidebar
+          user={{
+            name: userName,
+            email: emailAddress,
+            avatar: avatar,
+          }}
+        />
+        {children}
+      </SidebarProvider>
+    </OnboardingGuard>
   );
 }

@@ -2,9 +2,13 @@ package dolla
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 type service struct {
@@ -98,4 +102,78 @@ func (s *service) UpdateExpense(ctx context.Context, expense Expense) error {
 
 func (s *service) DeleteExpense(ctx context.Context, id string) error {
 	return s.repo.DeleteExpense(ctx, id)
+}
+
+func (s *service) GetUserProfile(ctx context.Context, clerkUserID string) (UserProfile, error) {
+	return s.repo.GetUserProfile(ctx, clerkUserID)
+}
+
+func (s *service) CreateUserProfile(ctx context.Context, profile UserProfile) error {
+	profile.PopulateDataOnCreate(ctx)
+
+	return s.repo.CreateUserProfile(ctx, profile)
+}
+
+func (s *service) UpdateUserProfile(ctx context.Context, profile UserProfile) error {
+	profile.PopulateDataOnUpdate(ctx)
+
+	return s.repo.UpdateUserProfile(ctx, profile)
+}
+
+func (s *service) CompleteOnboarding(
+	ctx context.Context, clerkUserID string, req OnboardingRequest,
+) (OnboardingResponse, error) {
+	existingProfile, err := s.repo.GetUserProfile(ctx, clerkUserID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return OnboardingResponse{
+			Success: false,
+			Message: "Failed to check existing profile",
+		}, err
+	}
+
+	if err == nil {
+		existingProfile.Age = req.Age
+		existingProfile.LifeStage = req.LifeStage
+		existingProfile.IncomeBracket = req.IncomeBracket
+		existingProfile.Goals = req.Goals
+		existingProfile.OnboardingComplete = true
+		existingProfile.PopulateDataOnUpdate(ctx)
+
+		if err := s.repo.UpdateUserProfile(ctx, existingProfile); err != nil {
+			return OnboardingResponse{
+				Success: false,
+				Message: "Failed to update profile",
+			}, err
+		}
+
+		return OnboardingResponse{
+			Success: true,
+			Profile: &existingProfile,
+			Message: "Profile updated successfully",
+		}, nil
+	}
+
+	newProfile := UserProfile{
+		ClerkUserID:        clerkUserID,
+		Age:                req.Age,
+		LifeStage:          req.LifeStage,
+		IncomeBracket:      req.IncomeBracket,
+		Goals:              req.Goals,
+		OnboardingComplete: true,
+	}
+	newProfile.ID = uuid.New().String()
+	newProfile.PopulateDataOnCreate(ctx)
+
+	if err := s.repo.CreateUserProfile(ctx, newProfile); err != nil {
+		return OnboardingResponse{
+			Success: false,
+			Message: "Failed to create profile",
+		}, err
+	}
+
+	return OnboardingResponse{
+		Success: true,
+		Profile: &newProfile,
+		Message: "Profile created successfully",
+	}, nil
 }

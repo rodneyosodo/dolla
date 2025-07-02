@@ -20,5 +20,8 @@ func NewHandler(svc dolla.Service, router *gin.Engine) *gin.Engine {
 
 	router.POST("/transactions/:type", createTransactions(svc))
 
+	router.GET("/profile/:clerk_user_id", getUserProfile(svc))
+	router.POST("/onboarding/:clerk_user_id", completeOnboarding(svc))
+
 	return router
 }

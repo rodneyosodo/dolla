@@ -17,6 +17,10 @@ type Repository interface {
 	ListExpenses(ctx context.Context, query Query) (ExpensePage, error)
 	UpdateExpense(ctx context.Context, expense Expense) error
 	DeleteExpense(ctx context.Context, id string) error
+
+	GetUserProfile(ctx context.Context, clerkUserID string) (UserProfile, error)
+	CreateUserProfile(ctx context.Context, profile UserProfile) error
+	UpdateUserProfile(ctx context.Context, profile UserProfile) error
 }
 
 type Service interface {
@@ -33,4 +37,9 @@ type Service interface {
 	ListExpenses(ctx context.Context, query Query) (ExpensePage, error)
 	UpdateExpense(ctx context.Context, expense Expense) error
 	DeleteExpense(ctx context.Context, id string) error
+
+	GetUserProfile(ctx context.Context, clerkUserID string) (UserProfile, error)
+	CreateUserProfile(ctx context.Context, profile UserProfile) error
+	UpdateUserProfile(ctx context.Context, profile UserProfile) error
+	CompleteOnboarding(ctx context.Context, clerkUserID string, req OnboardingRequest) (OnboardingResponse, error)
 }

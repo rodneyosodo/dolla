@@ -13,6 +13,7 @@ linters:
     - gomodguard
     - interfacebloat
     - wsl
+    - wsl_v5
     - wrapcheck
     - varnamelen
     - revive
@@ -23,6 +24,9 @@ linters:
     - dupl
     - depguard
     - gosec
+    - tagalign
+    - tagliatelle
+    - noinlineerr
   settings:
     funlen:
       lines: -1
