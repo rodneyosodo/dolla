@@ -1,6 +1,7 @@
 "use client";
 
 import { ClerkProvider } from "@clerk/nextjs";
+import { Toaster } from "@workspace/ui/components/sonner";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import * as React from "react";
 
@@ -20,6 +21,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         enableColorScheme
       >
         {children}
+        <Toaster />
       </NextThemesProvider>
     </ClerkProvider>
   );

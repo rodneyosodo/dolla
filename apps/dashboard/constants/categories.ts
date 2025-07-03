@@ -26,6 +26,7 @@ export const expense = [
   "grants / bursaries",
   "loan repayment received",
   "gifts / remittances",
+  "other",
 ];
 
 export const getExpenseCategoryClassName = (category: string): string => {

@@ -9,7 +9,9 @@ import { getIncomeCategoryClassName } from "@/constants/categories";
 import { Income } from "@/types/schema";
 import { DataTableRowActions } from "./data-table-row-actions";
 
-export const columns: ColumnDef<Income>[] = [
+export const createColumns = (
+  onIncomeUpdated?: () => void,
+): ColumnDef<Income>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -98,7 +100,7 @@ export const columns: ColumnDef<Income>[] = [
     enableHiding: true,
   },
   {
-    accessorKey: "payment_method",
+    accessorKey: "paymentMethod",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Payment Method" />
     ),
@@ -106,7 +108,7 @@ export const columns: ColumnDef<Income>[] = [
       return (
         <div className="flex space-x-2">
           <Badge variant="outline">
-            {row.getValue("payment_method") || "Other"}
+            {row.getValue("paymentMethod") || "Other"}
           </Badge>
         </div>
       );
@@ -121,9 +123,9 @@ export const columns: ColumnDef<Income>[] = [
     ),
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("amount"));
-      const formatted = new Intl.NumberFormat("en-US", {
+      const formatted = new Intl.NumberFormat("en-KE", {
         style: "currency",
-        currency: "KSH",
+        currency: "KES",
       }).format(amount);
       return <div className="font-medium">{formatted}</div>;
     },
@@ -131,15 +133,15 @@ export const columns: ColumnDef<Income>[] = [
     enableHiding: true,
   },
   {
-    accessorKey: "original_amount",
+    accessorKey: "originalAmount",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Original Amount" />
     ),
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("original_amount"));
-      const formatted = new Intl.NumberFormat("en-US", {
+      const amount = parseFloat(row.getValue("originalAmount"));
+      const formatted = new Intl.NumberFormat("en-KE", {
         style: "currency",
-        currency: "KSH",
+        currency: "KES",
       }).format(amount);
       return <div className="font-medium">{formatted}</div>;
     },
@@ -148,6 +150,10 @@ export const columns: ColumnDef<Income>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => <DataTableRowActions row={row} />,
+    cell: ({ row }) => (
+      <DataTableRowActions row={row} onIncomeUpdated={onIncomeUpdated} />
+    ),
   },
 ];
+
+export const columns = createColumns();

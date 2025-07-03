@@ -164,7 +164,7 @@ func (r *sqlite3) ListIncomes(ctx context.Context, query dolla.Query) (dolla.Inc
 		}
 	}()
 
-	var incomes []dolla.Income
+	incomes := make([]dolla.Income, 0)
 	for rows.Next() {
 		var income dolla.Income
 		if err := rows.StructScan(&income); err != nil {
@@ -320,7 +320,7 @@ func (r *sqlite3) ListExpenses(ctx context.Context, query dolla.Query) (dolla.Ex
 		}
 	}()
 
-	var expenses []dolla.Expense
+	expenses := make([]dolla.Expense, 0)
 	for rows.Next() {
 		var expense dolla.Expense
 		if err := rows.StructScan(&expense); err != nil {

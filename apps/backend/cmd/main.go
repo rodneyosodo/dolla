@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/rodneyosodo/dolla/backend/internal/dolla"
 	"github.com/rodneyosodo/dolla/backend/internal/dolla/api"
@@ -75,6 +76,7 @@ func main() {
 	gin.SetMode(cfg.GinMode)
 
 	router := gin.New()
+	router.Use(cors.Default())
 	router.Use(gin.Recovery())
 	router.Use(sloggin.New(logger))
 	router.MaxMultipartMemory = maxMultipartMemory
