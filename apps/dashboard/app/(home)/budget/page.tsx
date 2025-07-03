@@ -1,10 +1,24 @@
-import { Button } from "@workspace/ui/components/button";
+"use client";
+
+import { Input } from "@workspace/ui/components/input";
+import { Label } from "@workspace/ui/components/label";
 import { SidebarInset } from "@workspace/ui/components/sidebar";
-import { CirclePlus } from "lucide-react";
+import { useCallback, useState } from "react";
+import { BudgetAlerts } from "@/components/budget-alerts";
+import { BudgetTable } from "@/components/budget-table";
+import { CreateBudgetDialog } from "@/components/create-budget-dialog";
 import NavHeader from "@/components/nav-header";
-import { TableDemo } from "./components/table";
 
 export default function Page() {
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    return new Date().toISOString().slice(0, 7); // Current month in YYYY-MM format
+  });
+
+  const handleBudgetChanged = useCallback(() => {
+    // This will be called when budgets are created or deleted
+    // The BudgetTable and BudgetAlerts components will refresh automatically
+  }, []);
+
   return (
     <SidebarInset>
       <NavHeader parent={{ title: "Budget", url: "/budget" }} />
@@ -15,18 +29,36 @@ export default function Page() {
               Monthly Budget
             </h2>
             <p className="text-muted-foreground">
-              Here's a list of all your budget items.
+              Track your spending by category and get alerts when you're
+              approaching your limits.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline">
-              <CirclePlus className="h-4 w-4 mr-2" />
-              Create New Budget Item
-            </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="month-select" className="text-sm font-medium">
+                Month:
+              </Label>
+              <Input
+                id="month-select"
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="w-40"
+              />
+            </div>
+            <CreateBudgetDialog onBudgetCreated={handleBudgetChanged} />
           </div>
         </div>
-        <div className="p-0">
-          <TableDemo />
+
+        <div className="px-4">
+          <BudgetAlerts month={selectedMonth} />
+        </div>
+
+        <div className="px-4">
+          <BudgetTable
+            month={selectedMonth}
+            onBudgetDeleted={handleBudgetChanged}
+          />
         </div>
       </div>
     </SidebarInset>

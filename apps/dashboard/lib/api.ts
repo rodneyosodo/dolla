@@ -1,4 +1,10 @@
-import { Expense, Income } from "@/types/schema";
+import {
+  Budget,
+  BudgetResponse,
+  BudgetSummary,
+  Expense,
+  Income,
+} from "@/types/schema";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:9010";
 
@@ -177,6 +183,124 @@ export async function deleteExpense(id: string): Promise<{ message: string }> {
 
   if (!response.ok) {
     throw new Error(`Failed to delete expense: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data;
+}
+
+// Budget API Functions
+export async function getBudgets(
+  month?: string,
+  offset = 0,
+  limit = 100,
+): Promise<BudgetResponse> {
+  const params = new URLSearchParams({
+    offset: offset.toString(),
+    limit: limit.toString(),
+  });
+
+  if (month) {
+    params.append("month", month);
+  }
+
+  const response = await fetch(`${API_BASE_URL}/budgets?${params}`, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch budgets: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data;
+}
+
+export async function createBudget(
+  budget: Omit<
+    Budget,
+    "id" | "spentAmount" | "remainingAmount" | "percentageUsed" | "isOverspent"
+  >,
+): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/budgets`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify([budget]),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to create budget: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data;
+}
+
+export async function updateBudget(
+  id: string,
+  budget: Partial<Budget>,
+): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/budgets/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(budget),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to update budget: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data;
+}
+
+export async function deleteBudget(id: string): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/budgets/${id}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to delete budget: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data;
+}
+
+export async function getBudgetSummary(month: string): Promise<BudgetSummary> {
+  const response = await fetch(
+    `${API_BASE_URL}/budgets/summary?month=${month}`,
+    {
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch budget summary: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data;
+}
+
+export async function calculateBudgetProgress(
+  month: string,
+): Promise<{ message: string }> {
+  const response = await fetch(
+    `${API_BASE_URL}/budgets/calculate?month=${month}`,
+    {
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to calculate budget progress: ${response.statusText}`,
+    );
   }
 
   const data = await response.json();

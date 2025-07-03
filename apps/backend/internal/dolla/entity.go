@@ -217,3 +217,32 @@ type ExpensePage struct {
 	Total    uint64    `json:"total"`
 	Expenses []Expense `json:"expenses"`
 }
+
+type Budget struct {
+	BaseEntity
+
+	Month           string   `db:"month"              json:"month"`
+	Category        Category `db:"category"           json:"category"`
+	BudgetAmount    float64  `db:"budget_amount"      json:"budgetAmount"`
+	SpentAmount     float64  `db:"spent_amount"       json:"spentAmount"`
+	RemainingAmount float64  `db:"remaining_amount"   json:"remainingAmount"`
+	PercentageUsed  float64  `db:"percentage_used"    json:"percentageUsed"`
+	IsOverspent     bool     `db:"is_overspent"       json:"isOverspent"`
+}
+
+type BudgetPage struct {
+	Offset  uint64   `json:"offset"`
+	Limit   uint64   `json:"limit"`
+	Total   uint64   `json:"total"`
+	Budgets []Budget `json:"budgets"`
+}
+
+type BudgetSummary struct {
+	TotalBudget           float64 `json:"totalBudget"`
+	TotalSpent            float64 `json:"totalSpent"`
+	TotalRemaining        float64 `json:"totalRemaining"`
+	OverallPercentageUsed float64 `json:"overallPercentageUsed"`
+	CategoriesOverspent   int     `json:"categoriesOverspent"`
+	CategoriesOnTrack     int     `json:"categoriesOnTrack"`
+	CategoriesWithBudgets int     `json:"categoriesWithBudgets"`
+}

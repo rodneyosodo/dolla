@@ -66,7 +66,28 @@ const (
 		goals TEXT NOT NULL,
 		onboarding_complete BOOLEAN DEFAULT FALSE
 	);
+
+	CREATE TABLE IF NOT EXISTS budgets (
+		id UUID PRIMARY KEY,
+		date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		created_by VARCHAR(255),
+		date_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_by VARCHAR(255),
+		active BOOLEAN DEFAULT TRUE,
+		meta JSONB DEFAULT '{}',
+		month VARCHAR(7) NOT NULL,
+		category VARCHAR(255) NOT NULL,
+		budget_amount REAL NOT NULL,
+		spent_amount REAL DEFAULT 0.0,
+		remaining_amount REAL DEFAULT 0.0,
+		percentage_used REAL DEFAULT 0.0,
+		is_overspent BOOLEAN DEFAULT FALSE,
+		UNIQUE(month, category)
+	);
 	`
+
+	percent           = 100.0
+	maxBudgets uint64 = 1000
 )
 
 type sqlite3 struct {
@@ -555,6 +576,296 @@ func (r *sqlite3) UpdateUserProfile(ctx context.Context, profile dolla.UserProfi
 
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
+func (r *sqlite3) CreateBudget(ctx context.Context, budgets ...dolla.Budget) error {
+	if len(budgets) == 0 {
+		return nil
+	}
+
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	for i := range budgets {
+		budgets[i].RemainingAmount = budgets[i].BudgetAmount - budgets[i].SpentAmount
+		if budgets[i].BudgetAmount > 0 {
+			budgets[i].PercentageUsed = (budgets[i].SpentAmount / budgets[i].BudgetAmount) * percent
+		}
+		budgets[i].IsOverspent = budgets[i].SpentAmount > budgets[i].BudgetAmount
+
+		query := `INSERT INTO budgets
+		(id, date_created, created_by, date_updated, updated_by, active, meta,
+		month, category, budget_amount, spent_amount, remaining_amount, 
+		percentage_used, is_overspent)
+		VALUES (:id, :date_created, :created_by, :date_updated, :updated_by,
+		:active, :meta, :month, :category, :budget_amount, :spent_amount,
+		:remaining_amount, :percentage_used, :is_overspent)`
+
+		if _, err := tx.NamedExecContext(ctx, query, budgets[i]); err != nil {
+			if err := tx.Rollback(); err != nil {
+				slog.Error("failed to rollback transaction", slog.String("err", err.Error()))
+			}
+
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		if err := tx.Rollback(); err != nil {
+			slog.Error("failed to rollback transaction", slog.String("err", err.Error()))
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func (r *sqlite3) GetBudget(ctx context.Context, id string) (dolla.Budget, error) {
+	query := `SELECT * FROM budgets WHERE id = $1 AND active = true`
+	rows, err := r.db.QueryxContext(ctx, query, id)
+	if err != nil {
+		return dolla.Budget{}, err
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			slog.Error("failed to close rows", slog.String("err", err.Error()))
+		}
+	}()
+
+	if rows.Next() {
+		var budget dolla.Budget
+		if err := rows.StructScan(&budget); err != nil {
+			return dolla.Budget{}, err
+		}
+
+		return budget, nil
+	}
+
+	return dolla.Budget{}, errors.New("budget not found")
+}
+
+func (r *sqlite3) ListBudgets( //nolint:cyclop
+	ctx context.Context, query dolla.Query, month string,
+) (dolla.BudgetPage, error) {
+	var q string
+	var args []interface{}
+
+	switch month {
+	case "":
+		q = fmt.Sprintf(`SELECT * FROM budgets WHERE active = true LIMIT %d OFFSET %d`, query.Limit, query.Offset)
+	default:
+		q = fmt.Sprintf(
+			`SELECT * FROM budgets WHERE active = true AND month = $1 LIMIT %d OFFSET %d`,
+			query.Limit, query.Offset,
+		)
+		args = append(args, month)
+	}
+
+	rows, err := r.db.QueryxContext(ctx, q, args...)
+	if err != nil {
+		return dolla.BudgetPage{}, err
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			slog.Error("failed to close rows", slog.String("err", err.Error()))
+		}
+	}()
+
+	budgets := make([]dolla.Budget, 0)
+	for rows.Next() {
+		var budget dolla.Budget
+		if err := rows.StructScan(&budget); err != nil {
+			return dolla.BudgetPage{}, err
+		}
+		budgets = append(budgets, budget)
+	}
+
+	var tq string
+	switch month {
+	case "":
+		tq = `SELECT COUNT(*) FROM budgets WHERE active = true`
+		rows, err = r.db.QueryxContext(ctx, tq)
+	default:
+		tq = `SELECT COUNT(*) FROM budgets WHERE active = true AND month = $1`
+		rows, err = r.db.QueryxContext(ctx, tq, month)
+	}
+
+	if err != nil {
+		return dolla.BudgetPage{}, err
+	}
+
+	total := uint64(0)
+	if rows.Next() {
+		if err := rows.Scan(&total); err != nil {
+			return dolla.BudgetPage{}, err
+		}
+	}
+
+	return dolla.BudgetPage{
+		Offset:  query.Offset,
+		Limit:   query.Limit,
+		Total:   total,
+		Budgets: budgets,
+	}, nil
+}
+
+func (r *sqlite3) UpdateBudget(ctx context.Context, budget dolla.Budget) error {
+	queries := []string{
+		`date_updated = :date_updated`,
+	}
+	if budget.Month != "" {
+		queries = append(queries, `month = :month`)
+	}
+	if budget.Category != "" {
+		queries = append(queries, `category = :category`)
+	}
+	if budget.BudgetAmount != 0 {
+		queries = append(queries, `budget_amount = :budget_amount`)
+	}
+	if budget.SpentAmount != 0 {
+		queries = append(queries, `spent_amount = :spent_amount`)
+	}
+	if budget.RemainingAmount != 0 {
+		queries = append(queries, `remaining_amount = :remaining_amount`)
+	}
+	if budget.PercentageUsed != 0 {
+		queries = append(queries, `percentage_used = :percentage_used`)
+	}
+	queries = append(queries, `is_overspent = :is_overspent`)
+
+	query := fmt.Sprintf(`UPDATE budgets SET %s WHERE id = :id AND active = true`, strings.Join(queries, ", "))
+	if _, err := r.db.NamedExecContext(ctx, query, budget); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *sqlite3) DeleteBudget(ctx context.Context, id string) error {
+	query := `UPDATE budgets SET active = false WHERE id = $1`
+	if _, err := r.db.ExecContext(ctx, query, id); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *sqlite3) GetBudgetSummary(ctx context.Context, month string) (dolla.BudgetSummary, error) {
+	query := `
+		SELECT 
+			COALESCE(SUM(budget_amount), 0) as total_budget,
+			COALESCE(SUM(spent_amount), 0) as total_spent,
+			COALESCE(SUM(remaining_amount), 0) as total_remaining,
+			COALESCE(COUNT(CASE WHEN is_overspent = true THEN 1 END), 0) as categories_overspent,
+			COALESCE(COUNT(CASE WHEN is_overspent = false THEN 1 END), 0) as categories_on_track,
+			COALESCE(COUNT(*), 0) as categories_with_budgets
+		FROM budgets 
+		WHERE active = true AND month = $1
+	`
+
+	var summary dolla.BudgetSummary
+	var totalBudget, totalSpent, totalRemaining float64
+	var categoriesOverspent, categoriesOnTrack, categoriesWithBudgets int
+
+	err := r.db.QueryRowContext(ctx, query, month).Scan(
+		&totalBudget,
+		&totalSpent,
+		&totalRemaining,
+		&categoriesOverspent,
+		&categoriesOnTrack,
+		&categoriesWithBudgets,
+	)
+	if err != nil {
+		return dolla.BudgetSummary{}, err
+	}
+
+	summary.TotalBudget = totalBudget
+	summary.TotalSpent = totalSpent
+	summary.TotalRemaining = totalRemaining
+	summary.CategoriesOverspent = categoriesOverspent
+	summary.CategoriesOnTrack = categoriesOnTrack
+	summary.CategoriesWithBudgets = categoriesWithBudgets
+
+	if totalBudget > 0 {
+		summary.OverallPercentageUsed = (totalSpent / totalBudget) * percent
+	}
+
+	return summary, nil
+}
+
+func (r *sqlite3) CalculateBudgetProgress(ctx context.Context, month string) error { //nolint:cyclop
+	// Get all budgets for the month
+	budgets, err := r.ListBudgets(ctx, dolla.Query{Limit: maxBudgets}, month)
+	if err != nil {
+		return err
+	}
+
+	if len(budgets.Budgets) == 0 {
+		return nil
+	}
+
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	for i := range budgets.Budgets {
+		spentQuery := `
+			SELECT COALESCE(SUM(amount), 0) 
+			FROM expenses 
+			WHERE active = true 
+			  AND category = $1 
+			  AND strftime('%Y-%m', date) = $2
+		`
+
+		var spentAmount float64
+		err := tx.QueryRowContext(ctx, spentQuery, budgets.Budgets[i].Category, month).Scan(&spentAmount)
+		if err != nil {
+			if err := tx.Rollback(); err != nil {
+				slog.Error("failed to rollback transaction", slog.String("err", err.Error()))
+			}
+
+			return err
+		}
+
+		remainingAmount := budgets.Budgets[i].BudgetAmount - spentAmount
+		var percentageUsed float64
+		if budgets.Budgets[i].BudgetAmount > 0 {
+			percentageUsed = (spentAmount / budgets.Budgets[i].BudgetAmount) * percent
+		}
+		isOverspent := spentAmount > budgets.Budgets[i].BudgetAmount
+
+		updateQuery := `
+			UPDATE budgets 
+			SET spent_amount = $1, 
+			    remaining_amount = $2, 
+			    percentage_used = $3, 
+			    is_overspent = $4,
+			    date_updated = CURRENT_TIMESTAMP
+			WHERE id = $5 AND active = true
+		`
+
+		_, err = tx.ExecContext(
+			ctx, updateQuery, spentAmount,
+			remainingAmount, percentageUsed, isOverspent, budgets.Budgets[i].ID,
+		)
+		if err != nil {
+			if err := tx.Rollback(); err != nil {
+				slog.Error("failed to rollback transaction", slog.String("err", err.Error()))
+			}
+
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
 	}
 
 	return nil

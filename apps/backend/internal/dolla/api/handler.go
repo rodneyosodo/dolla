@@ -23,5 +23,13 @@ func NewHandler(svc dolla.Service, router *gin.Engine) *gin.Engine {
 	router.GET("/profile/:clerk_user_id", getUserProfile(svc))
 	router.POST("/onboarding/:clerk_user_id", completeOnboarding(svc))
 
+	router.POST("/budgets", createBudgets(svc))
+	router.GET("/budgets", listBudgets(svc))
+	router.GET("/budgets/:id", getBudget(svc))
+	router.PUT("/budgets/:id", updateBudget(svc))
+	router.DELETE("/budgets/:id", deleteBudget(svc))
+	router.GET("/budgets/summary", getBudgetSummary(svc))
+	router.POST("/budgets/calculate", calculateBudgetProgress(svc))
+
 	return router
 }

@@ -21,6 +21,14 @@ type Repository interface {
 	GetUserProfile(ctx context.Context, clerkUserID string) (UserProfile, error)
 	CreateUserProfile(ctx context.Context, profile UserProfile) error
 	UpdateUserProfile(ctx context.Context, profile UserProfile) error
+
+	CreateBudget(ctx context.Context, budgets ...Budget) error
+	GetBudget(ctx context.Context, id string) (Budget, error)
+	ListBudgets(ctx context.Context, query Query, month string) (BudgetPage, error)
+	UpdateBudget(ctx context.Context, budget Budget) error
+	DeleteBudget(ctx context.Context, id string) error
+	GetBudgetSummary(ctx context.Context, month string) (BudgetSummary, error)
+	CalculateBudgetProgress(ctx context.Context, month string) error
 }
 
 type Service interface {
@@ -42,4 +50,12 @@ type Service interface {
 	CreateUserProfile(ctx context.Context, profile UserProfile) error
 	UpdateUserProfile(ctx context.Context, profile UserProfile) error
 	CompleteOnboarding(ctx context.Context, clerkUserID string, req OnboardingRequest) (OnboardingResponse, error)
+
+	CreateBudget(ctx context.Context, budgets ...Budget) error
+	GetBudget(ctx context.Context, id string) (Budget, error)
+	ListBudgets(ctx context.Context, query Query, month string) (BudgetPage, error)
+	UpdateBudget(ctx context.Context, budget Budget) error
+	DeleteBudget(ctx context.Context, id string) error
+	GetBudgetSummary(ctx context.Context, month string) (BudgetSummary, error)
+	CalculateBudgetProgress(ctx context.Context, month string) error
 }
