@@ -42,3 +42,39 @@ export const incomeSchema = z.object({
 });
 
 export type Income = z.infer<typeof incomeSchema>;
+
+export const budgetSchema = z.object({
+  id: z.string(),
+  month: z.string(), // YYYY-MM format
+  category: z.enum(expense as [string, ...string[]]),
+  budgetAmount: z.number(),
+  spentAmount: z.number().default(0),
+  remainingAmount: z.number().default(0),
+  percentageUsed: z.number().default(0),
+  isOverspent: z.boolean().default(false),
+  dateCreated: z.string().optional(),
+  createdBy: z.string().optional(),
+  dateUpdated: z.string().optional(),
+  updatedBy: z.string().optional(),
+  active: z.boolean().optional(),
+  meta: z.record(z.any()).optional(),
+});
+
+export type Budget = z.infer<typeof budgetSchema>;
+
+export interface BudgetResponse {
+  offset: number;
+  limit: number;
+  total: number;
+  budgets: Budget[];
+}
+
+export interface BudgetSummary {
+  month: string;
+  totalBudget: number;
+  totalSpent: number;
+  totalRemaining: number;
+  overallPercentageUsed: number;
+  categoriesOverspent: number;
+  totalCategories: number;
+}

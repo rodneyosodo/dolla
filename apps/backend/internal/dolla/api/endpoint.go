@@ -250,3 +250,133 @@ func completeOnboarding(svc dolla.Service) func(c *gin.Context) {
 		c.JSON(http.StatusOK, response)
 	}
 }
+
+func createBudgets(svc dolla.Service) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		var budgets []dolla.Budget
+		if err := c.ShouldBindJSON(&budgets); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+			return
+		}
+
+		if err := svc.CreateBudget(c.Request.Context(), budgets...); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "ok"})
+	}
+}
+
+func getBudget(svc dolla.Service) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		id := c.Param("id")
+		budget, err := svc.GetBudget(c.Request.Context(), id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+			return
+		}
+
+		c.JSON(http.StatusOK, budget)
+	}
+}
+
+func listBudgets(svc dolla.Service) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		query := dolla.Query{}
+		if err := c.ShouldBindQuery(&query); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+			return
+		}
+		if query.Limit == 0 {
+			query.Limit = 100
+		}
+
+		month := c.Query("month")
+		budgets, err := svc.ListBudgets(c.Request.Context(), query, month)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+			return
+		}
+
+		c.JSON(http.StatusOK, budgets)
+	}
+}
+
+func updateBudget(svc dolla.Service) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		id := c.Param("id")
+		var budget dolla.Budget
+		if err := c.ShouldBindJSON(&budget); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+			return
+		}
+		budget.ID = id
+
+		if err := svc.UpdateBudget(c.Request.Context(), budget); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "ok"})
+	}
+}
+
+func deleteBudget(svc dolla.Service) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		id := c.Param("id")
+		if err := svc.DeleteBudget(c.Request.Context(), id); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "ok"})
+	}
+}
+
+func getBudgetSummary(svc dolla.Service) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		month := c.Query("month")
+		if month == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "month parameter is required"})
+
+			return
+		}
+
+		summary, err := svc.GetBudgetSummary(c.Request.Context(), month)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+			return
+		}
+
+		c.JSON(http.StatusOK, summary)
+	}
+}
+
+func calculateBudgetProgress(svc dolla.Service) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		month := c.Query("month")
+		if month == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "month parameter is required"})
+
+			return
+		}
+
+		if err := svc.CalculateBudgetProgress(c.Request.Context(), month); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Budget progress calculated successfully"})
+	}
+}

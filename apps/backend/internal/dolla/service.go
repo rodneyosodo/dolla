@@ -177,3 +177,37 @@ func (s *service) CompleteOnboarding(
 		Message: "Profile created successfully",
 	}, nil
 }
+
+func (s *service) CreateBudget(ctx context.Context, budgets ...Budget) error {
+	for i := range budgets {
+		budgets[i].PopulateDataOnCreate(ctx)
+	}
+
+	return s.repo.CreateBudget(ctx, budgets...)
+}
+
+func (s *service) GetBudget(ctx context.Context, id string) (Budget, error) {
+	return s.repo.GetBudget(ctx, id)
+}
+
+func (s *service) ListBudgets(ctx context.Context, query Query, month string) (BudgetPage, error) {
+	return s.repo.ListBudgets(ctx, query, month)
+}
+
+func (s *service) UpdateBudget(ctx context.Context, budget Budget) error {
+	budget.PopulateDataOnUpdate(ctx)
+
+	return s.repo.UpdateBudget(ctx, budget)
+}
+
+func (s *service) DeleteBudget(ctx context.Context, id string) error {
+	return s.repo.DeleteBudget(ctx, id)
+}
+
+func (s *service) GetBudgetSummary(ctx context.Context, month string) (BudgetSummary, error) {
+	return s.repo.GetBudgetSummary(ctx, month)
+}
+
+func (s *service) CalculateBudgetProgress(ctx context.Context, month string) error {
+	return s.repo.CalculateBudgetProgress(ctx, month)
+}
