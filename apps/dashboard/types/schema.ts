@@ -8,9 +8,15 @@ export const expenseSchema = z.object({
   merchant: z.string(),
   category: z.enum(expense as [string, ...string[]]),
   description: z.string(),
-  payment_method: z.enum(paymentMethods as [string, ...string[]]),
+  paymentMethod: z.enum(paymentMethods as [string, ...string[]]),
   amount: z.number(),
   status: z.string(),
+  dateCreated: z.string().optional(),
+  createdBy: z.string().optional(),
+  dateUpdated: z.string().optional(),
+  updatedBy: z.string().optional(),
+  active: z.boolean().optional(),
+  meta: z.record(z.any()).optional(),
 });
 
 export type Expense = z.infer<typeof expenseSchema>;
@@ -21,20 +27,18 @@ export const incomeSchema = z.object({
   source: z.string(),
   category: z.enum(income as [string, ...string[]]),
   description: z.string(),
-  payment_method: z.enum(paymentMethods as [string, ...string[]]),
+  paymentMethod: z.enum(paymentMethods as [string, ...string[]]),
   amount: z.number(),
-  currency: z.enum(["KSH", "USD", "EUR", "GBP"]),
-  is_recurring: z.boolean(),
-  original_amount: z.number(),
-  deductions: z
-    .array(
-      z.object({
-        description: z.string(),
-        amount: z.number(),
-        currency: z.enum(["KSH", "USD", "EUR", "GBP"]),
-      }),
-    )
-    .optional(),
+  currency: z.enum(["KES", "USD", "EUR", "GBP"]),
+  isRecurring: z.boolean(),
+  originalAmount: z.number(),
+  status: z.string(),
+  dateCreated: z.string().optional(),
+  createdBy: z.string().optional(),
+  dateUpdated: z.string().optional(),
+  updatedBy: z.string().optional(),
+  active: z.boolean().optional(),
+  meta: z.record(z.any()).optional(),
 });
 
 export type Income = z.infer<typeof incomeSchema>;

@@ -1,29 +1,38 @@
-import { Button } from "@workspace/ui/components/button";
+"use client";
+
 import { SidebarInset } from "@workspace/ui/components/sidebar";
-import { promises as fs } from "fs";
-import { CirclePlus } from "lucide-react";
-import path from "path";
-import { z } from "zod";
+import { useEffect, useState } from "react";
+import { CreateExpenseDialog } from "@/components/create-expense-dialog";
 import NavHeader from "@/components/nav-header";
-import { expenseSchema } from "@/types/schema";
-import { columns } from "./components/columns";
+import { UploadStatementDialog } from "@/components/upload-statement-dialog";
+import { ExpenseResponse, getExpenses } from "@/lib/api";
+import { createColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 
-async function getExpenses() {
-  const data = await fs.readFile(
-    path.join(
-      process.cwd(),
-      "app/(home)/(transactions)/expenses/data/transactions.json",
-    ),
-  );
+export default function Page() {
+  const [response, setResponse] = useState<ExpenseResponse>({
+    offset: 0,
+    limit: 100,
+    total: 0,
+    expenses: [],
+  });
+  const [loading, setLoading] = useState(true);
 
-  const expenses = JSON.parse(data.toString());
+  const fetchExpenses = async () => {
+    try {
+      setLoading(true);
+      const data = await getExpenses();
+      setResponse(data);
+    } catch (error) {
+      console.error("Failed to fetch expenses:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  return z.array(expenseSchema).parse(expenses);
-}
-
-export default async function Page() {
-  const expenses = await getExpenses();
+  useEffect(() => {
+    fetchExpenses();
+  }, []);
 
   return (
     <SidebarInset>
@@ -40,18 +49,21 @@ export default async function Page() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline">
-              <CirclePlus className="h-4 w-4 mr-2" />
-              Create New Expense Transaction
-            </Button>
-            <Button variant="outline">
-              <CirclePlus className="h-4 w-4 mr-2" />
-              Upload Transactions
-            </Button>
+            <CreateExpenseDialog onExpenseCreated={fetchExpenses} />
+            <UploadStatementDialog onUploadComplete={fetchExpenses} />
           </div>
         </div>
         <div className="p-0">
-          <DataTable data={expenses} columns={columns} />
+          {loading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="text-muted-foreground">Loading expenses...</div>
+            </div>
+          ) : (
+            <DataTable
+              data={response.expenses}
+              columns={createColumns(fetchExpenses)}
+            />
+          )}
         </div>
       </div>
     </SidebarInset>

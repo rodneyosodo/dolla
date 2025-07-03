@@ -1,29 +1,40 @@
-import { Button } from "@workspace/ui/components/button";
+"use client";
+
 import { SidebarInset } from "@workspace/ui/components/sidebar";
-import { promises as fs } from "fs";
-import { CirclePlus } from "lucide-react";
-import path from "path";
-import { z } from "zod";
+import { useEffect, useState } from "react";
+import { CreateIncomeDialog } from "@/components/create-income-dialog";
 import NavHeader from "@/components/nav-header";
-import { incomeSchema } from "@/types/schema";
-import { columns } from "./components/columns";
+import { UploadStatementDialog } from "@/components/upload-statement-dialog";
+import { getIncomes, IncomeResponse } from "@/lib/api";
+import { createColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 
-async function getIncomes() {
-  const data = await fs.readFile(
-    path.join(
-      process.cwd(),
-      "app/(home)/(transactions)/income/data/transactions.json",
-    ),
-  );
+export default function Page() {
+  const [response, setResponse] = useState<IncomeResponse>({
+    offset: 0,
+    limit: 100,
+    total: 0,
+    incomes: [],
+  });
+  const [loading, setLoading] = useState(true);
 
-  const incomes = JSON.parse(data.toString());
+  const fetchIncomes = async () => {
+    try {
+      setLoading(true);
+      const data = await getIncomes();
+      setResponse(data);
+    } catch (error) {
+      console.error("Failed to fetch incomes:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  return z.array(incomeSchema).parse(incomes);
-}
+  useEffect(() => {
+    fetchIncomes();
+  }, []);
 
-export default async function Page() {
-  const incomes = await getIncomes();
+  console.log("Incomes response:", response);
 
   return (
     <SidebarInset>
@@ -40,18 +51,21 @@ export default async function Page() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline">
-              <CirclePlus className="h-4 w-4 mr-2" />
-              Create New Income Transaction
-            </Button>
-            <Button variant="outline">
-              <CirclePlus className="h-4 w-4 mr-2" />
-              Upload Transactions
-            </Button>
+            <CreateIncomeDialog onIncomeCreated={fetchIncomes} />
+            <UploadStatementDialog onUploadComplete={fetchIncomes} />
           </div>
         </div>
         <div className="p-0">
-          <DataTable data={incomes} columns={columns} />
+          {loading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="text-muted-foreground">Loading incomes...</div>
+            </div>
+          ) : (
+            <DataTable
+              data={response.incomes}
+              columns={createColumns(fetchIncomes)}
+            />
+          )}
         </div>
       </div>
     </SidebarInset>

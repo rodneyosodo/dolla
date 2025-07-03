@@ -10,7 +10,9 @@ import { Expense } from "@/types/schema";
 import { statuses } from "../data/status";
 import { DataTableRowActions } from "./data-table-row-actions";
 
-export const columns: ColumnDef<Expense>[] = [
+export const createColumns = (
+  onExpenseUpdated?: () => void,
+): ColumnDef<Expense>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -99,7 +101,7 @@ export const columns: ColumnDef<Expense>[] = [
     enableHiding: true,
   },
   {
-    accessorKey: "payment_method",
+    accessorKey: "paymentMethod",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Payment Method" />
     ),
@@ -107,7 +109,7 @@ export const columns: ColumnDef<Expense>[] = [
       return (
         <div className="flex space-x-2">
           <Badge variant="outline">
-            {row.getValue("payment_method") || "Other"}
+            {row.getValue("paymentMethod") || "Other"}
           </Badge>
         </div>
       );
@@ -122,9 +124,9 @@ export const columns: ColumnDef<Expense>[] = [
     ),
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("amount"));
-      const formatted = new Intl.NumberFormat("en-US", {
+      const formatted = new Intl.NumberFormat("en-KE", {
         style: "currency",
-        currency: "KSH",
+        currency: "KES",
       }).format(amount);
       return <div className="font-medium">{formatted}</div>;
     },
@@ -160,6 +162,10 @@ export const columns: ColumnDef<Expense>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => <DataTableRowActions row={row} />,
+    cell: ({ row }) => (
+      <DataTableRowActions row={row} onExpenseUpdated={onExpenseUpdated} />
+    ),
   },
 ];
+
+export const columns = createColumns();
