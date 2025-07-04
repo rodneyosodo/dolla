@@ -17,7 +17,7 @@ services:
     networks:
       - dolla-base-network
     volumes:
-      - dolla-pdf-extractor-output-volume:/ouput
+      - dolla-pdf-extractor-output-volume:/output
       - dolla-pdf-extractor-uploads-volume:/uploads
     ports:
       - 9000:9000
@@ -39,7 +39,7 @@ services:
       - DOLLA_BACKEND_GIN_MODE=release
       - DOLLA_BACKEND_PDF_EXTRACTOR_URL=http://dolla-pdf-extractor:9000/extract
 
-  dolla-dasboard:
+  dolla-dashboard:
     image: ghcr.io/rodneyosodo/dolla/dashboard:latest
     container_name: dolla-dashboard
     restart: on-failure
