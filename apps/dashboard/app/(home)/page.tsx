@@ -1,6 +1,7 @@
 import { SidebarInset } from "@workspace/ui/components/sidebar";
 import NavHeader from "@/components/nav-header";
 import { ChartAreaInteractive } from "./components/chart-area-interactive";
+import { RecentTransactionsTable } from "./components/recent-transactions-table";
 import { SectionCards } from "./components/section-cards";
 
 export default function Page() {
@@ -13,6 +14,9 @@ export default function Page() {
             <SectionCards />
             <div className="px-4 lg:px-6">
               <ChartAreaInteractive />
+            </div>
+            <div className="px-4 lg:px-6">
+              <RecentTransactionsTable />
             </div>
           </div>
         </div>

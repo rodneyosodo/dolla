@@ -306,3 +306,186 @@ export async function calculateBudgetProgress(
   const data = await response.json();
   return data;
 }
+
+// Dashboard Totals API Functions
+export interface DashboardTotals {
+  totalBalance: number;
+  totalIncome: number;
+  totalExpenses: number;
+  totalSavings: number;
+  incomeChangePercent: number;
+  expenseChangePercent: number;
+  balanceChangePercent: number;
+  savingsChangePercent: number;
+}
+
+export async function getDashboardTotals(): Promise<DashboardTotals> {
+  try {
+    const currentDate = new Date();
+    const currentMonth = currentDate.toISOString().slice(0, 7);
+    const previousMonth = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth() - 1,
+      1,
+    )
+      .toISOString()
+      .slice(0, 7);
+
+    const [currentIncomes, currentExpenses, previousIncomes, previousExpenses] =
+      await Promise.all([
+        getIncomes(0, 10000),
+        getExpenses(0, 10000),
+        getIncomes(0, 10000),
+        getExpenses(0, 10000),
+      ]);
+
+    // Calculate totals for all time
+    const totalIncome = currentIncomes.incomes.reduce(
+      (sum, income) => sum + income.amount,
+      0,
+    );
+    const totalExpenses = currentExpenses.expenses.reduce(
+      (sum, expense) => sum + expense.amount,
+      0,
+    );
+    const totalBalance = totalIncome - totalExpenses;
+    const totalSavings = totalBalance > 0 ? totalBalance : 0;
+
+    // Calculate current month totals
+    const currentMonthIncomeList = currentIncomes.incomes.filter((income) =>
+      income.date.startsWith(currentMonth),
+    );
+    const currentMonthExpenseList = currentExpenses.expenses.filter((expense) =>
+      expense.date.startsWith(currentMonth),
+    );
+
+    // Calculate previous month totals
+    const previousMonthIncomeList = previousIncomes.incomes.filter((income) =>
+      income.date.startsWith(previousMonth),
+    );
+    const previousMonthExpenseList = previousExpenses.expenses.filter(
+      (expense) => expense.date.startsWith(previousMonth),
+    );
+
+    const currentMonthIncome = currentMonthIncomeList.reduce(
+      (sum, income) => sum + income.amount,
+      0,
+    );
+    const currentMonthExpenseTotal = currentMonthExpenseList.reduce(
+      (sum, expense) => sum + expense.amount,
+      0,
+    );
+    const currentMonthBalance = currentMonthIncome - currentMonthExpenseTotal;
+    const currentMonthSavings =
+      currentMonthBalance > 0 ? currentMonthBalance : 0;
+
+    const previousMonthIncome = previousMonthIncomeList.reduce(
+      (sum, income) => sum + income.amount,
+      0,
+    );
+    const previousMonthExpenseTotal = previousMonthExpenseList.reduce(
+      (sum, expense) => sum + expense.amount,
+      0,
+    );
+    const previousMonthBalance =
+      previousMonthIncome - previousMonthExpenseTotal;
+    const previousMonthSavings =
+      previousMonthBalance > 0 ? previousMonthBalance : 0;
+
+    // Calculate percentage changes
+    const incomeChangePercent =
+      previousMonthIncome > 0
+        ? ((currentMonthIncome - previousMonthIncome) / previousMonthIncome) *
+          100
+        : 0;
+    const expenseChangePercent =
+      previousMonthExpenseTotal > 0
+        ? ((currentMonthExpenseTotal - previousMonthExpenseTotal) /
+            previousMonthExpenseTotal) *
+          100
+        : 0;
+    const balanceChangePercent =
+      previousMonthBalance !== 0
+        ? ((currentMonthBalance - previousMonthBalance) /
+            Math.abs(previousMonthBalance)) *
+          100
+        : 0;
+    const savingsChangePercent =
+      previousMonthSavings > 0
+        ? ((currentMonthSavings - previousMonthSavings) /
+            previousMonthSavings) *
+          100
+        : 0;
+
+    return {
+      totalBalance,
+      totalIncome,
+      totalExpenses,
+      totalSavings,
+      incomeChangePercent,
+      expenseChangePercent,
+      balanceChangePercent,
+      savingsChangePercent,
+    };
+  } catch (error) {
+    console.error("Failed to fetch dashboard totals:", error);
+    return {
+      totalBalance: 0,
+      totalIncome: 0,
+      totalExpenses: 0,
+      totalSavings: 0,
+      incomeChangePercent: 0,
+      expenseChangePercent: 0,
+      balanceChangePercent: 0,
+      savingsChangePercent: 0,
+    };
+  }
+}
+
+// Recent Transactions API Functions
+export interface RecentTransaction {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  type: "income" | "expense";
+  category: string;
+}
+
+export async function getRecentTransactions(
+  limit = 10,
+): Promise<RecentTransaction[]> {
+  try {
+    const [incomes, expenses] = await Promise.all([
+      getIncomes(0, limit),
+      getExpenses(0, limit),
+    ]);
+
+    const transactions: RecentTransaction[] = [
+      ...incomes.incomes.map((income) => ({
+        id: income.id,
+        date: income.date,
+        description: income.description || income.source,
+        amount: income.amount,
+        type: "income" as const,
+        category: income.category,
+      })),
+      ...expenses.expenses.map((expense) => ({
+        id: expense.id,
+        date: expense.date,
+        description: expense.description || expense.merchant,
+        amount: expense.amount,
+        type: "expense" as const,
+        category: expense.category,
+      })),
+    ];
+
+    // Sort by date (newest first) and limit
+    return transactions
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, limit);
+  } catch (error) {
+    console.error("Failed to fetch recent transactions:", error);
+    return [];
+  }
+}
