@@ -9,6 +9,10 @@ on:
       - "**.ts"
       - "**.tsx"
       - "!apps/backend/**"
+      - "packages/**"
+      - "apps/dashboard/**"
+      - "apps/web/**"
+      - "package.json"
 
   pull_request:
     branches:
@@ -18,6 +22,10 @@ on:
       - "**.ts"
       - "**.tsx"
       - "!apps/backend/**"
+      - "packages/**"
+      - "apps/dashboard/**"
+      - "apps/web/**"
+      - "package.json"
 
   workflow_dispatch:
 
