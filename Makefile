@@ -47,7 +47,7 @@ define make_docker_pdf_extractor
 		-f apps/pdf-extractor/Dockerfile apps/pdf-extractor/
 endef
 
-all: backend
+all: docker_backend docker_ui_dashboard docker_ui_web docker_pdf_extractor
 
 clean:
 	rm -rf ${BUILD_DIR}
@@ -77,12 +77,38 @@ define docker_push
 	docker push $(DOCKER_IMAGE_NAME_PREFIX)/pdf-extractor:$(1)
 endef
 
-latest: docker_backend docker_ui_dashboard docker_ui_web docker_pdf_extractor
+latest: all
 	$(call docker_push,latest)
 
-release: docker_backend docker_ui_dashboard docker_ui_web docker_pdf_extractor
+release: all
 	$(call docker_push,$(VERSION))
 	$(call docker_push,latest)
 
 lint:
 	golangci-lint run --config apps/backend/.golangci.yaml apps/backend/...
+
+help:
+	@echo "";
+	@echo "██████╗  ██████╗ ██╗     ██╗      █████╗ ";
+	@echo "██╔══██╗██╔═══██╗██║     ██║     ██╔══██╗";
+	@echo "██║  ██║██║   ██║██║     ██║     ███████║";
+	@echo "██║  ██║██║   ██║██║     ██║     ██╔══██║";
+	@echo "██████╔╝╚██████╔╝███████╗███████╗██║  ██║";
+	@echo "╚═════╝  ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝";
+	@echo "                                         ";
+	@echo "Makefile commands:"
+	@echo "";
+	@echo "  help                 - Display this help message";
+	@echo "  all                  - Build all services docker images";
+	@echo "  clean                - Clean up build artifacts";
+	@echo "  backend              - Build backend service binary";
+	@echo "  docker_backend       - Build backend service docker image";
+	@echo "  docker_dev_backend   - Build backend service docker image for development";
+	@echo "  docker_ui_dashboard  - Build dashboard service docker image";
+	@echo "  docker_ui_web        - Build web service docker image";
+	@echo "  docker_pdf_extractor - Build pdf extractor service docker image";
+	@echo "  latest               - Build and push latest docker images";
+	@echo "  release              - Build and push release docker images";
+	@echo "  lint                 - Run golangci-lint";
+	@echo "";
+	@echo "For javaScript/TypeScript projects, have a look at the package.json file for available scripts.";
