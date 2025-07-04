@@ -6,7 +6,8 @@ import {
   Income,
 } from "@/types/schema";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:9010";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9010";
 
 export interface ApiResponse<T> {
   offset: number;
@@ -38,7 +39,9 @@ export async function getIncomes(
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(
-      `Failed to fetch incomes (${response.status}): ${errorText || response.statusText}`,
+      `Failed to fetch incomes (${response.status}): ${
+        errorText || response.statusText
+      }`,
     );
   }
 

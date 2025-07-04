@@ -1,0 +1,53 @@
+name: dolla
+
+networks:
+  dolla-base-network:
+    driver: bridge
+
+volumes:
+  dolla-pdf-extractor-output-volume:
+  dolla-pdf-extractor-uploads-volume:
+  dolla-backend-sqlite3-volume:
+
+services:
+  dolla-pdf-extractor:
+    image: ghcr.io/rodneyosodo/dolla/pdf-extractor:latest
+    container_name: dolla-pdf-extractor
+    restart: on-failure
+    networks:
+      - dolla-base-network
+    volumes:
+      - dolla-pdf-extractor-output-volume:/output
+      - dolla-pdf-extractor-uploads-volume:/uploads
+    ports:
+      - 9000:9000
+
+  dolla-backend:
+    image: ghcr.io/rodneyosodo/dolla/backend:latest
+    container_name: dolla-backend
+    restart: on-failure
+    networks:
+      - dolla-base-network
+    volumes:
+      - dolla-backend-sqlite3-volume:/db
+    ports:
+      - 9010:9010
+    environment:
+      - DOLLA_BACKEND_LOG_LEVEL=info
+      - DOLLA_BACKEND_HTTP_ADDRESS=dolla-backend:9010
+      - DOLLA_BACKEND_DB_FILE=/db/db.sqlite3
+      - DOLLA_BACKEND_GIN_MODE=release
+      - DOLLA_BACKEND_PDF_EXTRACTOR_URL=http://dolla-pdf-extractor:9000/extract
+
+  dolla-dashboard:
+    image: ghcr.io/rodneyosodo/dolla/dashboard:latest
+    container_name: dolla-dashboard
+    restart: on-failure
+    networks:
+      - dolla-base-network
+    ports:
+      - 3000:3000
+    environment:
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - NEXT_PUBLIC_BACKEND_URL=http://dolla-backend:9010
