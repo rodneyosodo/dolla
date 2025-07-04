@@ -1,0 +1,69 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "./.github/workflows"
+    schedule:
+      interval: "monthly"
+      day: "sunday"
+    groups:
+      gh-dependency:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directories:
+      - "./apps/backend"
+      - "./apps/dashboard"
+      - "./apps/pdf-extractor"
+      - "./apps/web"
+    schedule:
+      interval: "monthly"
+      day: "sunday"
+    groups:
+      docker-dependency:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "sunday"
+    groups:
+      dc-dependency:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gomod"
+    directory: "./apps/backend"
+    schedule:
+      interval: "monthly"
+      day: "sunday"
+    groups:
+      go-dependency:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "uv"
+    directory: "./apps/pdf-extractor"
+    schedule:
+      interval: "monthly"
+      day: "sunday"
+    groups:
+      py-dependency:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directories:
+      - "/"
+      - "./apps/dashboard"
+      - "./apps/web"
+      - "./packages/ui"
+    schedule:
+      interval: "monthly"
+      day: "sunday"
+    groups:
+      pnpm-dependency:
+        patterns:
+          - "*"
