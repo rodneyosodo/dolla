@@ -6,7 +6,7 @@ import {
   Income,
 } from "@/types/schema";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:9010";
+const API_BASE_URL = process.env.BACKEND_URL || "http://localhost:9010";
 
 export interface ApiResponse<T> {
   offset: number;
