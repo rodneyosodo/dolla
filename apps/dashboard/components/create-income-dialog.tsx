@@ -108,7 +108,7 @@ export function CreateIncomeDialog({
 
     setIsCreating(true);
     try {
-      const income: Omit<Income, "id"> = {
+      const income: Omit<Income, "id" | "userId"> = {
         date: formData.date,
         source: formData.source,
         category: formData.category as any,

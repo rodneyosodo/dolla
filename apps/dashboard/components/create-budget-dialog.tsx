@@ -75,6 +75,7 @@ export function CreateBudgetDialog({
       const budget: Omit<
         Budget,
         | "id"
+        | "userId"
         | "spentAmount"
         | "remainingAmount"
         | "percentageUsed"

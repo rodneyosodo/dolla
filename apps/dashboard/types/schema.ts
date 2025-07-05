@@ -4,6 +4,7 @@ import { paymentMethods } from "@/constants/payment-methods";
 
 export const expenseSchema = z.object({
   id: z.string(),
+  userId: z.string(),
   date: z.string(),
   merchant: z.string(),
   category: z.enum(expense as [string, ...string[]]),
@@ -23,6 +24,7 @@ export type Expense = z.infer<typeof expenseSchema>;
 
 export const incomeSchema = z.object({
   id: z.string(),
+  userId: z.string(),
   date: z.string(),
   source: z.string(),
   category: z.enum(income as [string, ...string[]]),
@@ -45,6 +47,7 @@ export type Income = z.infer<typeof incomeSchema>;
 
 export const budgetSchema = z.object({
   id: z.string(),
+  userId: z.string(),
   month: z.string(), // YYYY-MM format
   category: z.enum(expense as [string, ...string[]]),
   budgetAmount: z.number(),
