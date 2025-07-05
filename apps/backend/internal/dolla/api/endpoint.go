@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rodneyosodo/dolla/backend/internal/dolla"
@@ -78,14 +79,11 @@ func listIncomes(svc dolla.Service) func(c *gin.Context) {
 			return
 		}
 
-		query := dolla.Query{}
-		if err := c.ShouldBindQuery(&query); err != nil {
+		query, err := getQueryParams(c)
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 
 			return
-		}
-		if query.Limit == 0 {
-			query.Limit = 100
 		}
 
 		incomes, err := svc.ListIncomes(c.Request.Context(), userID, query)
@@ -201,14 +199,11 @@ func listExpenses(svc dolla.Service) func(c *gin.Context) {
 			return
 		}
 
-		query := dolla.Query{}
-		if err := c.ShouldBindQuery(&query); err != nil {
+		query, err := getQueryParams(c)
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 
 			return
-		}
-		if query.Limit == 0 {
-			query.Limit = 100
 		}
 
 		expenses, err := svc.ListExpenses(c.Request.Context(), userID, query)
@@ -395,14 +390,11 @@ func listBudgets(svc dolla.Service) func(c *gin.Context) {
 			return
 		}
 
-		query := dolla.Query{}
-		if err := c.ShouldBindQuery(&query); err != nil {
+		query, err := getQueryParams(c)
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 
 			return
-		}
-		if query.Limit == 0 {
-			query.Limit = 100
 		}
 
 		month := c.Query("month")
@@ -509,4 +501,23 @@ func calculateBudgetProgress(svc dolla.Service) func(c *gin.Context) {
 
 		c.JSON(http.StatusOK, gin.H{"message": "Budget progress calculated successfully"})
 	}
+}
+
+func getQueryParams(c *gin.Context) (dolla.Query, error) {
+	offset := c.DefaultQuery("offset", "0")
+	o, err := strconv.ParseUint(offset, 10, 64)
+	if err != nil {
+		return dolla.Query{}, err
+	}
+
+	limit := c.DefaultQuery("limit", "100")
+	l, err := strconv.ParseUint(limit, 10, 64)
+	if err != nil {
+		return dolla.Query{}, err
+	}
+
+	return dolla.Query{
+		Offset: o,
+		Limit:  l,
+	}, nil
 }
