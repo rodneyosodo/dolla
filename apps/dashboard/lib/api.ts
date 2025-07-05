@@ -1,3 +1,5 @@
+"use server";
+
 import {
   Budget,
   BudgetResponse,
@@ -6,8 +8,7 @@ import {
   Income,
 } from "@/types/schema";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9010";
+const API_BASE_URL = process.env.BACKEND_URL || "http://localhost:9010";
 
 export interface ApiResponse<T> {
   offset: number;
@@ -491,4 +492,47 @@ export async function getRecentTransactions(
     console.error("Failed to fetch recent transactions:", error);
     return [];
   }
+}
+
+// Onboarding API Functions
+export async function completeOnboarding(
+  clerkUserId: string,
+  data: any,
+): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/onboarding/${clerkUserId}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to complete onboarding");
+  }
+
+  const result = await response.json();
+  return result;
+}
+
+export async function getProfile(clerkUserId: string): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/profile/${clerkUserId}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (response.status === 404) {
+    throw new Error("Profile not found");
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to get profile");
+  }
+
+  const result = await response.json();
+  return result;
 }

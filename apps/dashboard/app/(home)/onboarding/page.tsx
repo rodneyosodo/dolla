@@ -21,6 +21,7 @@ import {
 import { AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { completeOnboarding } from "@/lib/api";
 
 type LifeStage =
   | "student"
@@ -177,35 +178,28 @@ export default function OnboardingPage() {
       }
 
       // Update backend profile
-      const response = await fetch(`/api/onboarding/${user.id}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      await completeOnboarding(user.id, formData);
+
+      // Update Clerk public metadata
+      await user.update({
+        unsafeMetadata: {
+          ...user.unsafeMetadata,
+          onboarding_complete: true,
+          life_stage: formData.life_stage,
+          age_range: getAgeRange(formData.age),
+          income_bracket: formData.income_bracket,
+          primary_goals: formData.goals.slice(0, 3), // Store top 3 goals
         },
-        body: JSON.stringify(formData),
       });
 
-      if (response.ok) {
-        // Update Clerk public metadata
-        await user.update({
-          unsafeMetadata: {
-            ...user.unsafeMetadata,
-            onboarding_complete: true,
-            life_stage: formData.life_stage,
-            age_range: getAgeRange(formData.age),
-            income_bracket: formData.income_bracket,
-            primary_goals: formData.goals.slice(0, 3), // Store top 3 goals
-          },
-        });
-
-        router.push("/");
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || "Failed to complete onboarding");
-      }
+      router.push("/");
     } catch (error) {
       console.error("Error completing onboarding:", error);
-      setError("An unexpected error occurred. Please try again.");
+      setError(
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
