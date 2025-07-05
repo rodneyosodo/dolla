@@ -2,18 +2,41 @@ package api
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rodneyosodo/dolla/backend/internal/dolla"
 )
 
+func getUserID(c *gin.Context) string {
+	// Extract user ID from Clerk-provided headers
+	userID := c.GetHeader("X-User-Id")
+	if userID == "" {
+		userID = c.GetHeader("clerk-user-id")
+	}
+
+	return userID
+}
+
 func createIncomes(svc dolla.Service) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
 		var incomes []dolla.Income
 		if err := c.ShouldBindJSON(&incomes); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 
 			return
+		}
+
+		// Set user ID for all incomes
+		for i := range incomes {
+			incomes[i].UserID = userID
 		}
 
 		if err := svc.CreateIncome(c.Request.Context(), incomes...); err != nil {
@@ -28,8 +51,15 @@ func createIncomes(svc dolla.Service) func(c *gin.Context) {
 
 func getIncome(svc dolla.Service) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
 		id := c.Param("id")
-		income, err := svc.GetIncome(c.Request.Context(), id)
+		income, err := svc.GetIncome(c.Request.Context(), userID, id)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 
@@ -42,17 +72,21 @@ func getIncome(svc dolla.Service) func(c *gin.Context) {
 
 func listIncomes(svc dolla.Service) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		query := dolla.Query{}
-		if err := c.ShouldBindQuery(&query); err != nil {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
+		query, err := getQueryParams(c)
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 
 			return
 		}
-		if query.Limit == 0 {
-			query.Limit = 100
-		}
 
-		incomes, err := svc.ListIncomes(c.Request.Context(), query)
+		incomes, err := svc.ListIncomes(c.Request.Context(), userID, query)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 
@@ -86,8 +120,15 @@ func updateIncome(svc dolla.Service) func(c *gin.Context) {
 
 func deleteIncome(svc dolla.Service) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
 		id := c.Param("id")
-		if err := svc.DeleteIncome(c.Request.Context(), id); err != nil {
+		if err := svc.DeleteIncome(c.Request.Context(), userID, id); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 
 			return
@@ -99,11 +140,23 @@ func deleteIncome(svc dolla.Service) func(c *gin.Context) {
 
 func createExpenses(svc dolla.Service) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
 		var expenses []dolla.Expense
 		if err := c.ShouldBindJSON(&expenses); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 
 			return
+		}
+
+		// Set user ID for all expenses
+		for i := range expenses {
+			expenses[i].UserID = userID
 		}
 
 		if err := svc.CreateExpense(c.Request.Context(), expenses...); err != nil {
@@ -118,8 +171,15 @@ func createExpenses(svc dolla.Service) func(c *gin.Context) {
 
 func getExpense(svc dolla.Service) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
 		id := c.Param("id")
-		expense, err := svc.GetExpense(c.Request.Context(), id)
+		expense, err := svc.GetExpense(c.Request.Context(), userID, id)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 
@@ -132,17 +192,21 @@ func getExpense(svc dolla.Service) func(c *gin.Context) {
 
 func listExpenses(svc dolla.Service) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		query := dolla.Query{}
-		if err := c.ShouldBindQuery(&query); err != nil {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
+		query, err := getQueryParams(c)
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 
 			return
 		}
-		if query.Limit == 0 {
-			query.Limit = 100
-		}
 
-		expenses, err := svc.ListExpenses(c.Request.Context(), query)
+		expenses, err := svc.ListExpenses(c.Request.Context(), userID, query)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 
@@ -176,8 +240,15 @@ func updateExpense(svc dolla.Service) func(c *gin.Context) {
 
 func deleteExpense(svc dolla.Service) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
 		id := c.Param("id")
-		if err := svc.DeleteExpense(c.Request.Context(), id); err != nil {
+		if err := svc.DeleteExpense(c.Request.Context(), userID, id); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 
 			return
@@ -189,6 +260,13 @@ func deleteExpense(svc dolla.Service) func(c *gin.Context) {
 
 func createTransactions(svc dolla.Service) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
 		file, err := c.FormFile("file")
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -198,7 +276,7 @@ func createTransactions(svc dolla.Service) func(c *gin.Context) {
 
 		statementType := c.Param("type")
 
-		if err := svc.CreateTransaction(c.Request.Context(), dolla.Statement(statementType), file); err != nil {
+		if err := svc.CreateTransaction(c.Request.Context(), userID, dolla.Statement(statementType), file); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 
 			return
@@ -253,11 +331,23 @@ func completeOnboarding(svc dolla.Service) func(c *gin.Context) {
 
 func createBudgets(svc dolla.Service) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
 		var budgets []dolla.Budget
 		if err := c.ShouldBindJSON(&budgets); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 
 			return
+		}
+
+		// Set user ID for all budgets
+		for i := range budgets {
+			budgets[i].UserID = userID
 		}
 
 		if err := svc.CreateBudget(c.Request.Context(), budgets...); err != nil {
@@ -272,8 +362,15 @@ func createBudgets(svc dolla.Service) func(c *gin.Context) {
 
 func getBudget(svc dolla.Service) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
 		id := c.Param("id")
-		budget, err := svc.GetBudget(c.Request.Context(), id)
+		budget, err := svc.GetBudget(c.Request.Context(), userID, id)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 
@@ -286,18 +383,22 @@ func getBudget(svc dolla.Service) func(c *gin.Context) {
 
 func listBudgets(svc dolla.Service) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		query := dolla.Query{}
-		if err := c.ShouldBindQuery(&query); err != nil {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
+		query, err := getQueryParams(c)
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 
 			return
 		}
-		if query.Limit == 0 {
-			query.Limit = 100
-		}
 
 		month := c.Query("month")
-		budgets, err := svc.ListBudgets(c.Request.Context(), query, month)
+		budgets, err := svc.ListBudgets(c.Request.Context(), userID, query, month)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 
@@ -331,8 +432,15 @@ func updateBudget(svc dolla.Service) func(c *gin.Context) {
 
 func deleteBudget(svc dolla.Service) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
 		id := c.Param("id")
-		if err := svc.DeleteBudget(c.Request.Context(), id); err != nil {
+		if err := svc.DeleteBudget(c.Request.Context(), userID, id); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 
 			return
@@ -344,6 +452,13 @@ func deleteBudget(svc dolla.Service) func(c *gin.Context) {
 
 func getBudgetSummary(svc dolla.Service) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
 		month := c.Query("month")
 		if month == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "month parameter is required"})
@@ -351,7 +466,7 @@ func getBudgetSummary(svc dolla.Service) func(c *gin.Context) {
 			return
 		}
 
-		summary, err := svc.GetBudgetSummary(c.Request.Context(), month)
+		summary, err := svc.GetBudgetSummary(c.Request.Context(), userID, month)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 
@@ -364,6 +479,13 @@ func getBudgetSummary(svc dolla.Service) func(c *gin.Context) {
 
 func calculateBudgetProgress(svc dolla.Service) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
 		month := c.Query("month")
 		if month == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "month parameter is required"})
@@ -371,7 +493,7 @@ func calculateBudgetProgress(svc dolla.Service) func(c *gin.Context) {
 			return
 		}
 
-		if err := svc.CalculateBudgetProgress(c.Request.Context(), month); err != nil {
+		if err := svc.CalculateBudgetProgress(c.Request.Context(), userID, month); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 
 			return
@@ -379,4 +501,23 @@ func calculateBudgetProgress(svc dolla.Service) func(c *gin.Context) {
 
 		c.JSON(http.StatusOK, gin.H{"message": "Budget progress calculated successfully"})
 	}
+}
+
+func getQueryParams(c *gin.Context) (dolla.Query, error) {
+	offset := c.DefaultQuery("offset", "0")
+	o, err := strconv.ParseUint(offset, 10, 64)
+	if err != nil {
+		return dolla.Query{}, err
+	}
+
+	limit := c.DefaultQuery("limit", "100")
+	l, err := strconv.ParseUint(limit, 10, 64)
+	if err != nil {
+		return dolla.Query{}, err
+	}
+
+	return dolla.Query{
+		Offset: o,
+		Limit:  l,
+	}, nil
 }

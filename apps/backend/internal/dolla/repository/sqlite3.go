@@ -22,6 +22,7 @@ const (
 		updated_by VARCHAR(255),
 		active BOOLEAN DEFAULT TRUE,
 		meta JSONB DEFAULT '{}',
+		user_id VARCHAR(255) NOT NULL,
 		date VARCHAR(10),
 		merchant VARCHAR(1024),
 		category VARCHAR(255),
@@ -39,6 +40,7 @@ const (
 		updated_by VARCHAR(255),
 		active BOOLEAN DEFAULT TRUE,
 		meta JSONB DEFAULT '{}',
+		user_id VARCHAR(255) NOT NULL,
 		date VARCHAR(10),
 		source VARCHAR(1024),
 		category VARCHAR(255),
@@ -75,6 +77,7 @@ const (
 		updated_by VARCHAR(255),
 		active BOOLEAN DEFAULT TRUE,
 		meta JSONB DEFAULT '{}',
+		user_id VARCHAR(255) NOT NULL,
 		month VARCHAR(7) NOT NULL,
 		category VARCHAR(255) NOT NULL,
 		budget_amount REAL NOT NULL,
@@ -82,7 +85,7 @@ const (
 		remaining_amount REAL DEFAULT 0.0,
 		percentage_used REAL DEFAULT 0.0,
 		is_overspent BOOLEAN DEFAULT FALSE,
-		UNIQUE(month, category)
+		UNIQUE(user_id, month, category)
 	);
 	`
 
@@ -123,10 +126,10 @@ func (r *sqlite3) CreateIncome(ctx context.Context, incomes ...dolla.Income) err
 	for i := range incomes {
 		query := `INSERT INTO incomes
 		(id, date_created, created_by, date_updated, updated_by, active, meta,
-		date, source, category, description, payment_method, amount, currency,
+		user_id, date, source, category, description, payment_method, amount, currency,
 		is_recurring, original_amount, status)
 		VALUES (:id, :date_created, :created_by, :date_updated, :updated_by,
-		:active, :meta, :date, :source, :category, :description, :payment_method,
+		:active, :meta, :user_id, :date, :source, :category, :description, :payment_method,
 		:amount, :currency, :is_recurring, :original_amount, :status)`
 
 		if _, err := tx.NamedExecContext(ctx, query, incomes[i]); err != nil {
@@ -149,9 +152,9 @@ func (r *sqlite3) CreateIncome(ctx context.Context, incomes ...dolla.Income) err
 	return nil
 }
 
-func (r *sqlite3) GetIncome(ctx context.Context, id string) (dolla.Income, error) {
-	query := `SELECT * FROM incomes WHERE id = $1`
-	rows, err := r.db.QueryxContext(ctx, query, id)
+func (r *sqlite3) GetIncome(ctx context.Context, userID, id string) (dolla.Income, error) {
+	query := `SELECT * FROM incomes WHERE id = $1 AND user_id = $2`
+	rows, err := r.db.QueryxContext(ctx, query, id, userID)
 	if err != nil {
 		return dolla.Income{}, err
 	}
@@ -173,9 +176,9 @@ func (r *sqlite3) GetIncome(ctx context.Context, id string) (dolla.Income, error
 	return dolla.Income{}, errors.New("not found")
 }
 
-func (r *sqlite3) ListIncomes(ctx context.Context, query dolla.Query) (dolla.IncomePage, error) {
-	q := fmt.Sprintf(`SELECT * FROM incomes LIMIT %d OFFSET %d`, query.Limit, query.Offset)
-	rows, err := r.db.QueryxContext(ctx, q)
+func (r *sqlite3) ListIncomes(ctx context.Context, userID string, query dolla.Query) (dolla.IncomePage, error) {
+	q := fmt.Sprintf(`SELECT * FROM incomes WHERE user_id = $1 LIMIT %d OFFSET %d`, query.Limit, query.Offset)
+	rows, err := r.db.QueryxContext(ctx, q, userID)
 	if err != nil {
 		return dolla.IncomePage{}, err
 	}
@@ -195,8 +198,8 @@ func (r *sqlite3) ListIncomes(ctx context.Context, query dolla.Query) (dolla.Inc
 		incomes = append(incomes, income)
 	}
 
-	tq := `SELECT COUNT(*) FROM incomes`
-	rows, err = r.db.QueryxContext(ctx, tq)
+	tq := `SELECT COUNT(*) FROM incomes WHERE user_id = $1`
+	rows, err = r.db.QueryxContext(ctx, tq, userID)
 	if err != nil {
 		return dolla.IncomePage{}, err
 	}
@@ -259,9 +262,9 @@ func (r *sqlite3) UpdateIncome(ctx context.Context, income dolla.Income) error {
 	return nil
 }
 
-func (r *sqlite3) DeleteIncome(ctx context.Context, id string) error {
-	query := `DELETE FROM incomes WHERE id = $1`
-	if _, err := r.db.ExecContext(ctx, query, id); err != nil {
+func (r *sqlite3) DeleteIncome(ctx context.Context, userID, id string) error {
+	query := `DELETE FROM incomes WHERE id = $1 AND user_id = $2`
+	if _, err := r.db.ExecContext(ctx, query, id, userID); err != nil {
 		return err
 	}
 
@@ -280,9 +283,9 @@ func (r *sqlite3) CreateExpense(ctx context.Context, expenses ...dolla.Expense) 
 	for i := range expenses {
 		query := `INSERT INTO expenses
 		(id, date_created, created_by, date_updated, updated_by, active, meta,
-		date, merchant, category, description, payment_method, amount, status)
+		user_id, date, merchant, category, description, payment_method, amount, status)
 		VALUES (:id, :date_created, :created_by, :date_updated, :updated_by,
-		:active, :meta, :date, :merchant, :category, :description, :payment_method,
+		:active, :meta, :user_id, :date, :merchant, :category, :description, :payment_method,
 		:amount, :status)`
 
 		if _, err := tx.NamedExecContext(ctx, query, expenses[i]); err != nil {
@@ -305,9 +308,9 @@ func (r *sqlite3) CreateExpense(ctx context.Context, expenses ...dolla.Expense) 
 	return nil
 }
 
-func (r *sqlite3) GetExpense(ctx context.Context, id string) (dolla.Expense, error) {
-	query := `SELECT * FROM expenses WHERE id = $1`
-	rows, err := r.db.QueryxContext(ctx, query, id)
+func (r *sqlite3) GetExpense(ctx context.Context, userID, id string) (dolla.Expense, error) {
+	query := `SELECT * FROM expenses WHERE id = $1 AND user_id = $2`
+	rows, err := r.db.QueryxContext(ctx, query, id, userID)
 	if err != nil {
 		return dolla.Expense{}, err
 	}
@@ -329,9 +332,9 @@ func (r *sqlite3) GetExpense(ctx context.Context, id string) (dolla.Expense, err
 	return dolla.Expense{}, errors.New("not found")
 }
 
-func (r *sqlite3) ListExpenses(ctx context.Context, query dolla.Query) (dolla.ExpensePage, error) {
-	q := fmt.Sprintf(`SELECT * FROM expenses LIMIT %d OFFSET %d`, query.Limit, query.Offset)
-	rows, err := r.db.QueryxContext(ctx, q)
+func (r *sqlite3) ListExpenses(ctx context.Context, userID string, query dolla.Query) (dolla.ExpensePage, error) {
+	q := fmt.Sprintf(`SELECT * FROM expenses WHERE user_id = $1 LIMIT %d OFFSET %d`, query.Limit, query.Offset)
+	rows, err := r.db.QueryxContext(ctx, q, userID)
 	if err != nil {
 		return dolla.ExpensePage{}, err
 	}
@@ -351,8 +354,8 @@ func (r *sqlite3) ListExpenses(ctx context.Context, query dolla.Query) (dolla.Ex
 		expenses = append(expenses, expense)
 	}
 
-	tq := `SELECT COUNT(*) FROM expenses`
-	rows, err = r.db.QueryxContext(ctx, tq)
+	tq := `SELECT COUNT(*) FROM expenses WHERE user_id = $1`
+	rows, err = r.db.QueryxContext(ctx, tq, userID)
 	if err != nil {
 		return dolla.ExpensePage{}, err
 	}
@@ -406,9 +409,9 @@ func (r *sqlite3) UpdateExpense(ctx context.Context, expense dolla.Expense) erro
 	return nil
 }
 
-func (r *sqlite3) DeleteExpense(ctx context.Context, id string) error {
-	query := `DELETE FROM expenses WHERE id = $1`
-	if _, err := r.db.ExecContext(ctx, query, id); err != nil {
+func (r *sqlite3) DeleteExpense(ctx context.Context, userID, id string) error {
+	query := `DELETE FROM expenses WHERE id = $1 AND user_id = $2`
+	if _, err := r.db.ExecContext(ctx, query, id, userID); err != nil {
 		return err
 	}
 
@@ -600,10 +603,10 @@ func (r *sqlite3) CreateBudget(ctx context.Context, budgets ...dolla.Budget) err
 
 		query := `INSERT INTO budgets
 		(id, date_created, created_by, date_updated, updated_by, active, meta,
-		month, category, budget_amount, spent_amount, remaining_amount, 
+		user_id, month, category, budget_amount, spent_amount, remaining_amount, 
 		percentage_used, is_overspent)
 		VALUES (:id, :date_created, :created_by, :date_updated, :updated_by,
-		:active, :meta, :month, :category, :budget_amount, :spent_amount,
+		:active, :meta, :user_id, :month, :category, :budget_amount, :spent_amount,
 		:remaining_amount, :percentage_used, :is_overspent)`
 
 		if _, err := tx.NamedExecContext(ctx, query, budgets[i]); err != nil {
@@ -626,9 +629,9 @@ func (r *sqlite3) CreateBudget(ctx context.Context, budgets ...dolla.Budget) err
 	return nil
 }
 
-func (r *sqlite3) GetBudget(ctx context.Context, id string) (dolla.Budget, error) {
-	query := `SELECT * FROM budgets WHERE id = $1 AND active = true`
-	rows, err := r.db.QueryxContext(ctx, query, id)
+func (r *sqlite3) GetBudget(ctx context.Context, userID, id string) (dolla.Budget, error) {
+	query := `SELECT * FROM budgets WHERE id = $1 AND user_id = $2 AND active = true`
+	rows, err := r.db.QueryxContext(ctx, query, id, userID)
 	if err != nil {
 		return dolla.Budget{}, err
 	}
@@ -651,20 +654,24 @@ func (r *sqlite3) GetBudget(ctx context.Context, id string) (dolla.Budget, error
 }
 
 func (r *sqlite3) ListBudgets( //nolint:cyclop
-	ctx context.Context, query dolla.Query, month string,
+	ctx context.Context, userID string, query dolla.Query, month string,
 ) (dolla.BudgetPage, error) {
 	var q string
 	var args []interface{}
 
 	switch month {
 	case "":
-		q = fmt.Sprintf(`SELECT * FROM budgets WHERE active = true LIMIT %d OFFSET %d`, query.Limit, query.Offset)
-	default:
 		q = fmt.Sprintf(
-			`SELECT * FROM budgets WHERE active = true AND month = $1 LIMIT %d OFFSET %d`,
+			`SELECT * FROM budgets WHERE user_id = $1 AND active = true LIMIT %d OFFSET %d`,
 			query.Limit, query.Offset,
 		)
-		args = append(args, month)
+		args = append(args, userID)
+	default:
+		q = fmt.Sprintf(
+			`SELECT * FROM budgets WHERE user_id = $1 AND active = true AND month = $2 LIMIT %d OFFSET %d`,
+			query.Limit, query.Offset,
+		)
+		args = append(args, userID, month)
 	}
 
 	rows, err := r.db.QueryxContext(ctx, q, args...)
@@ -689,11 +696,11 @@ func (r *sqlite3) ListBudgets( //nolint:cyclop
 	var tq string
 	switch month {
 	case "":
-		tq = `SELECT COUNT(*) FROM budgets WHERE active = true`
-		rows, err = r.db.QueryxContext(ctx, tq)
+		tq = `SELECT COUNT(*) FROM budgets WHERE user_id = $1 AND active = true`
+		rows, err = r.db.QueryxContext(ctx, tq, userID)
 	default:
-		tq = `SELECT COUNT(*) FROM budgets WHERE active = true AND month = $1`
-		rows, err = r.db.QueryxContext(ctx, tq, month)
+		tq = `SELECT COUNT(*) FROM budgets WHERE user_id = $1 AND active = true AND month = $2`
+		rows, err = r.db.QueryxContext(ctx, tq, userID, month)
 	}
 
 	if err != nil {
@@ -747,16 +754,16 @@ func (r *sqlite3) UpdateBudget(ctx context.Context, budget dolla.Budget) error {
 	return nil
 }
 
-func (r *sqlite3) DeleteBudget(ctx context.Context, id string) error {
-	query := `UPDATE budgets SET active = false WHERE id = $1`
-	if _, err := r.db.ExecContext(ctx, query, id); err != nil {
+func (r *sqlite3) DeleteBudget(ctx context.Context, userID, id string) error {
+	query := `UPDATE budgets SET active = false WHERE id = $1 AND user_id = $2`
+	if _, err := r.db.ExecContext(ctx, query, id, userID); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *sqlite3) GetBudgetSummary(ctx context.Context, month string) (dolla.BudgetSummary, error) {
+func (r *sqlite3) GetBudgetSummary(ctx context.Context, userID, month string) (dolla.BudgetSummary, error) {
 	query := `
 		SELECT 
 			COALESCE(SUM(budget_amount), 0) as total_budget,
@@ -766,14 +773,14 @@ func (r *sqlite3) GetBudgetSummary(ctx context.Context, month string) (dolla.Bud
 			COALESCE(COUNT(CASE WHEN is_overspent = false THEN 1 END), 0) as categories_on_track,
 			COALESCE(COUNT(*), 0) as categories_with_budgets
 		FROM budgets 
-		WHERE active = true AND month = $1
+		WHERE user_id = $1 AND active = true AND month = $2
 	`
 
 	var summary dolla.BudgetSummary
 	var totalBudget, totalSpent, totalRemaining float64
 	var categoriesOverspent, categoriesOnTrack, categoriesWithBudgets int
 
-	err := r.db.QueryRowContext(ctx, query, month).Scan(
+	err := r.db.QueryRowContext(ctx, query, userID, month).Scan(
 		&totalBudget,
 		&totalSpent,
 		&totalRemaining,
@@ -799,9 +806,9 @@ func (r *sqlite3) GetBudgetSummary(ctx context.Context, month string) (dolla.Bud
 	return summary, nil
 }
 
-func (r *sqlite3) CalculateBudgetProgress(ctx context.Context, month string) error { //nolint:cyclop
+func (r *sqlite3) CalculateBudgetProgress(ctx context.Context, userID, month string) error { //nolint:cyclop
 	// Get all budgets for the month
-	budgets, err := r.ListBudgets(ctx, dolla.Query{Limit: maxBudgets}, month)
+	budgets, err := r.ListBudgets(ctx, userID, dolla.Query{Limit: maxBudgets}, month)
 	if err != nil {
 		return err
 	}
@@ -819,13 +826,14 @@ func (r *sqlite3) CalculateBudgetProgress(ctx context.Context, month string) err
 		spentQuery := `
 			SELECT COALESCE(SUM(amount), 0) 
 			FROM expenses 
-			WHERE active = true 
-			  AND category = $1 
-			  AND strftime('%Y-%m', date) = $2
+			WHERE user_id = $1 
+			  AND active = true 
+			  AND category = $2 
+			  AND strftime('%Y-%m', date) = $3
 		`
 
 		var spentAmount float64
-		err := tx.QueryRowContext(ctx, spentQuery, budgets.Budgets[i].Category, month).Scan(&spentAmount)
+		err := tx.QueryRowContext(ctx, spentQuery, userID, budgets.Budgets[i].Category, month).Scan(&spentAmount)
 		if err != nil {
 			if err := tx.Rollback(); err != nil {
 				slog.Error("failed to rollback transaction", slog.String("err", err.Error()))

@@ -175,6 +175,7 @@ func (d Date) MarshalJSON() ([]byte, error) {
 type Expense struct {
 	BaseEntity
 
+	UserID        string        `db:"user_id"        json:"userId"`
 	Date          Date          `db:"date"           json:"date"`
 	Merchant      string        `db:"merchant"       json:"merchant"`
 	Category      Category      `db:"category"       json:"category"`
@@ -187,6 +188,7 @@ type Expense struct {
 type Income struct {
 	BaseEntity
 
+	UserID         string        `db:"user_id"         json:"userId"`
 	Date           Date          `db:"date"            json:"date"`
 	Source         string        `db:"source"          json:"source"`
 	Category       Category      `db:"category"        json:"category"`
@@ -221,6 +223,7 @@ type ExpensePage struct {
 type Budget struct {
 	BaseEntity
 
+	UserID          string   `db:"user_id"            json:"userId"`
 	Month           string   `db:"month"              json:"month"`
 	Category        Category `db:"category"           json:"category"`
 	BudgetAmount    float64  `db:"budget_amount"      json:"budgetAmount"`

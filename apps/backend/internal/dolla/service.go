@@ -23,7 +23,9 @@ func NewService(repo Repository, pdfExtractorURL string) Service {
 	}
 }
 
-func (s *service) CreateTransaction(ctx context.Context, ttype Statement, fileHeader *multipart.FileHeader) error {
+func (s *service) CreateTransaction(
+	ctx context.Context, userID string, ttype Statement, fileHeader *multipart.FileHeader,
+) error {
 	file, err := fileHeader.Open()
 	if err != nil {
 		return err
@@ -35,6 +37,14 @@ func (s *service) CreateTransaction(ctx context.Context, ttype Statement, fileHe
 		incomes, expenses, err := Mpesa(ctx, http.DefaultClient, s.pdfExtractorURL, file)
 		if err != nil {
 			return err
+		}
+
+		// Set user ID for all transactions
+		for i := range incomes {
+			incomes[i].UserID = userID
+		}
+		for i := range expenses {
+			expenses[i].UserID = userID
 		}
 
 		if err := s.CreateIncome(ctx, incomes...); err != nil {
@@ -60,12 +70,12 @@ func (s *service) CreateIncome(ctx context.Context, incomes ...Income) error {
 	return s.repo.CreateIncome(ctx, incomes...)
 }
 
-func (s *service) GetIncome(ctx context.Context, id string) (Income, error) {
-	return s.repo.GetIncome(ctx, id)
+func (s *service) GetIncome(ctx context.Context, userID, id string) (Income, error) {
+	return s.repo.GetIncome(ctx, userID, id)
 }
 
-func (s *service) ListIncomes(ctx context.Context, query Query) (IncomePage, error) {
-	return s.repo.ListIncomes(ctx, query)
+func (s *service) ListIncomes(ctx context.Context, userID string, query Query) (IncomePage, error) {
+	return s.repo.ListIncomes(ctx, userID, query)
 }
 
 func (s *service) UpdateIncome(ctx context.Context, income Income) error {
@@ -74,8 +84,8 @@ func (s *service) UpdateIncome(ctx context.Context, income Income) error {
 	return s.repo.UpdateIncome(ctx, income)
 }
 
-func (s *service) DeleteIncome(ctx context.Context, id string) error {
-	return s.repo.DeleteIncome(ctx, id)
+func (s *service) DeleteIncome(ctx context.Context, userID, id string) error {
+	return s.repo.DeleteIncome(ctx, userID, id)
 }
 
 func (s *service) CreateExpense(ctx context.Context, expenses ...Expense) error {
@@ -86,12 +96,12 @@ func (s *service) CreateExpense(ctx context.Context, expenses ...Expense) error 
 	return s.repo.CreateExpense(ctx, expenses...)
 }
 
-func (s *service) GetExpense(ctx context.Context, id string) (Expense, error) {
-	return s.repo.GetExpense(ctx, id)
+func (s *service) GetExpense(ctx context.Context, userID, id string) (Expense, error) {
+	return s.repo.GetExpense(ctx, userID, id)
 }
 
-func (s *service) ListExpenses(ctx context.Context, query Query) (ExpensePage, error) {
-	return s.repo.ListExpenses(ctx, query)
+func (s *service) ListExpenses(ctx context.Context, userID string, query Query) (ExpensePage, error) {
+	return s.repo.ListExpenses(ctx, userID, query)
 }
 
 func (s *service) UpdateExpense(ctx context.Context, expense Expense) error {
@@ -100,8 +110,8 @@ func (s *service) UpdateExpense(ctx context.Context, expense Expense) error {
 	return s.repo.UpdateExpense(ctx, expense)
 }
 
-func (s *service) DeleteExpense(ctx context.Context, id string) error {
-	return s.repo.DeleteExpense(ctx, id)
+func (s *service) DeleteExpense(ctx context.Context, userID, id string) error {
+	return s.repo.DeleteExpense(ctx, userID, id)
 }
 
 func (s *service) GetUserProfile(ctx context.Context, clerkUserID string) (UserProfile, error) {
@@ -186,12 +196,12 @@ func (s *service) CreateBudget(ctx context.Context, budgets ...Budget) error {
 	return s.repo.CreateBudget(ctx, budgets...)
 }
 
-func (s *service) GetBudget(ctx context.Context, id string) (Budget, error) {
-	return s.repo.GetBudget(ctx, id)
+func (s *service) GetBudget(ctx context.Context, userID, id string) (Budget, error) {
+	return s.repo.GetBudget(ctx, userID, id)
 }
 
-func (s *service) ListBudgets(ctx context.Context, query Query, month string) (BudgetPage, error) {
-	return s.repo.ListBudgets(ctx, query, month)
+func (s *service) ListBudgets(ctx context.Context, userID string, query Query, month string) (BudgetPage, error) {
+	return s.repo.ListBudgets(ctx, userID, query, month)
 }
 
 func (s *service) UpdateBudget(ctx context.Context, budget Budget) error {
@@ -200,14 +210,14 @@ func (s *service) UpdateBudget(ctx context.Context, budget Budget) error {
 	return s.repo.UpdateBudget(ctx, budget)
 }
 
-func (s *service) DeleteBudget(ctx context.Context, id string) error {
-	return s.repo.DeleteBudget(ctx, id)
+func (s *service) DeleteBudget(ctx context.Context, userID, id string) error {
+	return s.repo.DeleteBudget(ctx, userID, id)
 }
 
-func (s *service) GetBudgetSummary(ctx context.Context, month string) (BudgetSummary, error) {
-	return s.repo.GetBudgetSummary(ctx, month)
+func (s *service) GetBudgetSummary(ctx context.Context, userID, month string) (BudgetSummary, error) {
+	return s.repo.GetBudgetSummary(ctx, userID, month)
 }
 
-func (s *service) CalculateBudgetProgress(ctx context.Context, month string) error {
-	return s.repo.CalculateBudgetProgress(ctx, month)
+func (s *service) CalculateBudgetProgress(ctx context.Context, userID, month string) error {
+	return s.repo.CalculateBudgetProgress(ctx, userID, month)
 }

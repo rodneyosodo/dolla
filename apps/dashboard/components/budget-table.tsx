@@ -1,16 +1,9 @@
 "use client";
 
+import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Progress } from "@workspace/ui/components/progress";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui/components/table";
 import {
   AlertTriangle,
   CheckCircle,
@@ -21,6 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { DataTable } from "@/app/(home)/(transactions)/expenses/components/data-table";
 import {
   calculateBudgetProgress,
   deleteBudget,
@@ -39,12 +33,22 @@ export function BudgetTable({ month, onBudgetDeleted }: BudgetTableProps) {
   const [summary, setSummary] = useState<BudgetSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [calculating, setCalculating] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
-  const fetchBudgets = async () => {
+  const fetchBudgets = async (offset?: number, limit?: number) => {
     try {
       setLoading(true);
-      const response = await getBudgets(month);
+      const response = await getBudgets(
+        month,
+        offset ?? pagination.pageIndex * pagination.pageSize,
+        limit ?? pagination.pageSize,
+      );
       setBudgets(response.budgets);
+      setTotalCount(response.total);
 
       // Also fetch summary
       try {
@@ -64,6 +68,17 @@ export function BudgetTable({ month, onBudgetDeleted }: BudgetTableProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePaginationChange = (newPagination: {
+    pageIndex: number;
+    pageSize: number;
+  }) => {
+    setPagination(newPagination);
+    fetchBudgets(
+      newPagination.pageIndex * newPagination.pageSize,
+      newPagination.pageSize,
+    );
   };
 
   const handleCalculateProgress = async () => {
@@ -108,6 +123,10 @@ export function BudgetTable({ month, onBudgetDeleted }: BudgetTableProps) {
     fetchBudgets();
   }, [month]);
 
+  useEffect(() => {
+    fetchBudgets();
+  }, [pagination.pageSize]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-KE", {
       style: "currency",
@@ -151,6 +170,84 @@ export function BudgetTable({ month, onBudgetDeleted }: BudgetTableProps) {
     if (percentage >= 80) return "bg-yellow-500";
     return "bg-green-500";
   };
+
+  const columns: ColumnDef<Budget>[] = [
+    {
+      accessorKey: "category",
+      header: "Category",
+      cell: ({ row }) => (
+        <div className="font-medium">{row.getValue("category")}</div>
+      ),
+    },
+    {
+      accessorKey: "budgetAmount",
+      header: "Budget",
+      cell: ({ row }) => formatCurrency(row.getValue("budgetAmount")),
+    },
+    {
+      accessorKey: "spentAmount",
+      header: "Spent",
+      cell: ({ row }) => formatCurrency(row.getValue("spentAmount")),
+    },
+    {
+      accessorKey: "remainingAmount",
+      header: "Remaining",
+      cell: ({ row }) => formatCurrency(row.getValue("remainingAmount")),
+    },
+    {
+      accessorKey: "percentageUsed",
+      header: "Progress",
+      cell: ({ row }) => {
+        const budget = row.original;
+        return (
+          <div className="w-[200px] space-y-1">
+            <div className="flex justify-between text-sm">
+              <span>{budget.percentageUsed.toFixed(1)}%</span>
+              <span className="text-muted-foreground">
+                {budget.isOverspent ? "Over" : "Used"}
+              </span>
+            </div>
+            <Progress
+              value={Math.min(budget.percentageUsed, 100)}
+              className="h-2"
+              style={
+                {
+                  "--progress-background": getProgressColor(
+                    budget.percentageUsed,
+                    budget.isOverspent,
+                  ),
+                } as React.CSSProperties
+              }
+            />
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "isOverspent",
+      header: "Status",
+      cell: ({ row }) => getStatusBadge(row.original),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => {
+        const budget = row.original;
+        return (
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDeleteBudget(budget.id, budget.category)}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
 
   if (loading) {
     return (
@@ -227,85 +324,14 @@ export function BudgetTable({ month, onBudgetDeleted }: BudgetTableProps) {
       </div>
 
       {/* Budget Table */}
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Category</TableHead>
-              <TableHead>Budget</TableHead>
-              <TableHead>Spent</TableHead>
-              <TableHead>Remaining</TableHead>
-              <TableHead>Progress</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {budgets.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
-                  <p className="text-muted-foreground">
-                    No budgets found for {month}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Create your first budget to start tracking spending
-                  </p>
-                </TableCell>
-              </TableRow>
-            ) : (
-              budgets.map((budget) => (
-                <TableRow key={budget.id}>
-                  <TableCell className="font-medium">
-                    {budget.category}
-                  </TableCell>
-                  <TableCell>{formatCurrency(budget.budgetAmount)}</TableCell>
-                  <TableCell>{formatCurrency(budget.spentAmount)}</TableCell>
-                  <TableCell>
-                    {formatCurrency(budget.remainingAmount)}
-                  </TableCell>
-                  <TableCell className="w-[200px]">
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span>{budget.percentageUsed.toFixed(1)}%</span>
-                        <span className="text-muted-foreground">
-                          {budget.isOverspent ? "Over" : "Used"}
-                        </span>
-                      </div>
-                      <Progress
-                        value={Math.min(budget.percentageUsed, 100)}
-                        className="h-2"
-                        style={
-                          {
-                            "--progress-background": getProgressColor(
-                              budget.percentageUsed,
-                              budget.isOverspent,
-                            ),
-                          } as React.CSSProperties
-                        }
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(budget)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          handleDeleteBudget(budget.id, budget.category)
-                        }
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        data={budgets}
+        columns={columns}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        pageCount={Math.ceil(totalCount / pagination.pageSize)}
+        totalCount={totalCount}
+      />
     </div>
   );
 }

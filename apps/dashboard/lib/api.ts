@@ -1,5 +1,6 @@
 "use server";
 
+import { auth } from "@clerk/nextjs/server";
 import {
   Budget,
   BudgetResponse,
@@ -9,6 +10,17 @@ import {
 } from "@/types/schema";
 
 const API_BASE_URL = process.env.BACKEND_URL || "http://localhost:9010";
+
+async function getAuthHeaders() {
+  const { userId } = await auth();
+  if (!userId) {
+    throw new Error("User not authenticated");
+  }
+  return {
+    "X-User-Id": userId,
+    "Content-Type": "application/json",
+  };
+}
 
 export interface ApiResponse<T> {
   offset: number;
@@ -30,10 +42,12 @@ export async function getIncomes(
   offset = 0,
   limit = 100,
 ): Promise<IncomeResponse> {
+  const headers = await getAuthHeaders();
   const response = await fetch(
     `${API_BASE_URL}/incomes?offset=${offset}&limit=${limit}`,
     {
       cache: "no-store",
+      headers,
     },
   );
 
@@ -54,10 +68,12 @@ export async function getExpenses(
   offset = 0,
   limit = 100,
 ): Promise<ExpenseResponse> {
+  const headers = await getAuthHeaders();
   const response = await fetch(
     `${API_BASE_URL}/expenses?offset=${offset}&limit=${limit}`,
     {
       cache: "no-store",
+      headers,
     },
   );
 
@@ -73,11 +89,19 @@ export async function uploadStatement(
   file: File,
   type: "mpesa" | "imbank" = "mpesa",
 ): Promise<{ message: string }> {
+  const { userId } = await auth();
+  if (!userId) {
+    throw new Error("User not authenticated");
+  }
+
   const formData = new FormData();
   formData.append("file", file);
 
   const response = await fetch(`${API_BASE_URL}/transactions/${type}`, {
     method: "POST",
+    headers: {
+      "X-User-Id": userId,
+    },
     body: formData,
   });
 
@@ -90,13 +114,12 @@ export async function uploadStatement(
 }
 
 export async function createIncome(
-  income: Omit<Income, "id">,
+  income: Omit<Income, "id" | "userId">,
 ): Promise<{ message: string }> {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/incomes`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify([income]),
   });
 
@@ -109,13 +132,12 @@ export async function createIncome(
 }
 
 export async function createExpense(
-  expense: Omit<Expense, "id">,
+  expense: Omit<Expense, "id" | "userId">,
 ): Promise<{ message: string }> {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/expenses`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify([expense]),
   });
 
@@ -131,11 +153,10 @@ export async function updateIncome(
   id: string,
   income: Partial<Income>,
 ): Promise<{ message: string }> {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/incomes/${id}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(income),
   });
 
@@ -148,8 +169,10 @@ export async function updateIncome(
 }
 
 export async function deleteIncome(id: string): Promise<{ message: string }> {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/incomes/${id}`, {
     method: "DELETE",
+    headers,
   });
 
   if (!response.ok) {
@@ -164,11 +187,10 @@ export async function updateExpense(
   id: string,
   expense: Partial<Expense>,
 ): Promise<{ message: string }> {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/expenses/${id}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(expense),
   });
 
@@ -181,8 +203,10 @@ export async function updateExpense(
 }
 
 export async function deleteExpense(id: string): Promise<{ message: string }> {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/expenses/${id}`, {
     method: "DELETE",
+    headers,
   });
 
   if (!response.ok) {
@@ -199,6 +223,7 @@ export async function getBudgets(
   offset = 0,
   limit = 100,
 ): Promise<BudgetResponse> {
+  const headers = await getAuthHeaders();
   const params = new URLSearchParams({
     offset: offset.toString(),
     limit: limit.toString(),
@@ -210,6 +235,7 @@ export async function getBudgets(
 
   const response = await fetch(`${API_BASE_URL}/budgets?${params}`, {
     cache: "no-store",
+    headers,
   });
 
   if (!response.ok) {
@@ -223,14 +249,18 @@ export async function getBudgets(
 export async function createBudget(
   budget: Omit<
     Budget,
-    "id" | "spentAmount" | "remainingAmount" | "percentageUsed" | "isOverspent"
+    | "id"
+    | "userId"
+    | "spentAmount"
+    | "remainingAmount"
+    | "percentageUsed"
+    | "isOverspent"
   >,
 ): Promise<{ message: string }> {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/budgets`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify([budget]),
   });
 
@@ -246,11 +276,10 @@ export async function updateBudget(
   id: string,
   budget: Partial<Budget>,
 ): Promise<{ message: string }> {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/budgets/${id}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(budget),
   });
 
@@ -263,8 +292,10 @@ export async function updateBudget(
 }
 
 export async function deleteBudget(id: string): Promise<{ message: string }> {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/budgets/${id}`, {
     method: "DELETE",
+    headers,
   });
 
   if (!response.ok) {
@@ -276,10 +307,12 @@ export async function deleteBudget(id: string): Promise<{ message: string }> {
 }
 
 export async function getBudgetSummary(month: string): Promise<BudgetSummary> {
+  const headers = await getAuthHeaders();
   const response = await fetch(
     `${API_BASE_URL}/budgets/summary?month=${month}`,
     {
       cache: "no-store",
+      headers,
     },
   );
 
@@ -294,10 +327,12 @@ export async function getBudgetSummary(month: string): Promise<BudgetSummary> {
 export async function calculateBudgetProgress(
   month: string,
 ): Promise<{ message: string }> {
+  const headers = await getAuthHeaders();
   const response = await fetch(
     `${API_BASE_URL}/budgets/calculate?month=${month}`,
     {
       method: "POST",
+      headers,
     },
   );
 

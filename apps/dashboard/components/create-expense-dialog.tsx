@@ -87,7 +87,7 @@ export function CreateExpenseDialog({
 
     setIsCreating(true);
     try {
-      const expense: Omit<Expense, "id"> = {
+      const expense: Omit<Expense, "id" | "userId"> = {
         date: formData.date,
         merchant: formData.merchant,
         category: formData.category,

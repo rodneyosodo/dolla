@@ -12,22 +12,40 @@ import { DataTable } from "./components/data-table";
 export default function Page() {
   const [response, setResponse] = useState<ExpenseResponse>({
     offset: 0,
-    limit: 100,
+    limit: 10,
     total: 0,
     expenses: [],
   });
   const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
-  const fetchExpenses = async () => {
+  const fetchExpenses = async (offset?: number, limit?: number) => {
     try {
       setLoading(true);
-      const data = await getExpenses();
+      const data = await getExpenses(
+        offset ?? pagination.pageIndex * pagination.pageSize,
+        limit ?? pagination.pageSize,
+      );
       setResponse(data);
     } catch (error) {
       console.error("Failed to fetch expenses:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePaginationChange = (newPagination: {
+    pageIndex: number;
+    pageSize: number;
+  }) => {
+    setPagination(newPagination);
+    fetchExpenses(
+      newPagination.pageIndex * newPagination.pageSize,
+      newPagination.pageSize,
+    );
   };
 
   useEffect(() => {
@@ -62,6 +80,10 @@ export default function Page() {
             <DataTable
               data={response.expenses}
               columns={createColumns(fetchExpenses)}
+              pagination={pagination}
+              onPaginationChange={handlePaginationChange}
+              pageCount={Math.ceil(response.total / pagination.pageSize)}
+              totalCount={response.total}
             />
           )}
         </div>
