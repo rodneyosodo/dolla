@@ -1,5 +1,6 @@
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
+import { getProfile } from "@/lib/api";
 
 interface UserProfile {
   id: string;
@@ -25,22 +26,17 @@ export const useOnboarding = () => {
       }
 
       try {
-        const response = await fetch(`/api/onboarding/${user.id}`);
-
-        if (response.status === 404) {
-          setNeedsOnboarding(true);
-          setProfile(null);
-        } else if (response.ok) {
-          const profileData = await response.json();
-          setProfile(profileData);
-          setNeedsOnboarding(!profileData.onboarding_complete);
-        } else {
-          console.error("Failed to fetch profile");
-          setNeedsOnboarding(true);
-        }
+        const profileData = await getProfile(user.id);
+        setProfile(profileData);
+        setNeedsOnboarding(!profileData.onboarding_complete);
       } catch (error) {
         console.error("Error checking onboarding status:", error);
-        setNeedsOnboarding(true);
+        if (error instanceof Error && error.message === "Profile not found") {
+          setNeedsOnboarding(true);
+          setProfile(null);
+        } else {
+          setNeedsOnboarding(true);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -57,12 +53,9 @@ export const useOnboarding = () => {
       if (!user) return;
 
       try {
-        const response = await fetch(`/api/onboarding/${user.id}`);
-        if (response.ok) {
-          const profileData = await response.json();
-          setProfile(profileData);
-          setNeedsOnboarding(!profileData.onboarding_complete);
-        }
+        const profileData = await getProfile(user.id);
+        setProfile(profileData);
+        setNeedsOnboarding(!profileData.onboarding_complete);
       } catch (error) {
         console.error("Error refreshing profile:", error);
       }

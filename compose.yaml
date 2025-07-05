@@ -53,4 +53,4 @@ services:
       - PORT=9020
       - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
       - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
-      - NEXT_PUBLIC_BACKEND_URL=http://dolla-backend:9010
+      - BACKEND_URL=http://dolla-backend:9010
