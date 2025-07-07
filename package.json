@@ -1,6 +1,6 @@
 {
   "name": "dolla",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-beta.1",
   "private": true,
   "scripts": {
     "build": "turbo build",
