@@ -1,6 +1,6 @@
 [project]
 name = "pdf-extractor"
-version = "0.1.0-beta.1"
+version = "0.1.0"
 description = "Simple microservice to extract text and tables from a PDF file."
 readme = "README.md"
 requires-python = ">=3.10"
