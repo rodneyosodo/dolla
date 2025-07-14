@@ -221,3 +221,29 @@ func (s *service) GetBudgetSummary(ctx context.Context, userID, month string) (B
 func (s *service) CalculateBudgetProgress(ctx context.Context, userID, month string) error {
 	return s.repo.CalculateBudgetProgress(ctx, userID, month)
 }
+
+func (s *service) CreateAccount(ctx context.Context, accounts ...Account) error {
+	for i := range accounts {
+		accounts[i].PopulateDataOnCreate(ctx)
+	}
+
+	return s.repo.CreateAccount(ctx, accounts...)
+}
+
+func (s *service) GetAccount(ctx context.Context, userID, id string) (Account, error) {
+	return s.repo.GetAccount(ctx, userID, id)
+}
+
+func (s *service) ListAccounts(ctx context.Context, userID string, query Query) (AccountPage, error) {
+	return s.repo.ListAccounts(ctx, userID, query)
+}
+
+func (s *service) UpdateAccount(ctx context.Context, account Account) error {
+	account.PopulateDataOnUpdate(ctx)
+
+	return s.repo.UpdateAccount(ctx, account)
+}
+
+func (s *service) DeleteAccount(ctx context.Context, userID, id string) error {
+	return s.repo.DeleteAccount(ctx, userID, id)
+}

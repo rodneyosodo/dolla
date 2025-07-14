@@ -21,12 +21,12 @@ import {
 } from "@workspace/ui/components/select";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { CirclePlus, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { expense } from "@/constants/categories";
 import { paymentMethods } from "@/constants/payment-methods";
-import { createExpense } from "@/lib/api";
-import { Expense } from "@/types/schema";
+import { createExpense, getAccounts } from "@/lib/api";
+import { Account, Expense } from "@/types/schema";
 
 interface CreateExpenseDialogProps {
   onExpenseCreated?: () => void;
@@ -37,6 +37,8 @@ export function CreateExpenseDialog({
 }: CreateExpenseDialogProps) {
   const [open, setOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
     merchant: "",
@@ -44,6 +46,7 @@ export function CreateExpenseDialog({
     description: "",
     paymentMethod: "",
     amount: "",
+    accountId: "",
   });
 
   const handleInputChange = (field: string, value: string) => {
@@ -58,8 +61,27 @@ export function CreateExpenseDialog({
       description: "",
       paymentMethod: "",
       amount: "",
+      accountId: "",
     });
   };
+
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      try {
+        setIsLoadingAccounts(true);
+        const response = await getAccounts(0, 100);
+        setAccounts(response.accounts);
+      } catch (error) {
+        console.error("Failed to fetch accounts:", error);
+      } finally {
+        setIsLoadingAccounts(false);
+      }
+    };
+
+    if (open) {
+      fetchAccounts();
+    }
+  }, [open]);
 
   const handleSubmit = async () => {
     // Validation
@@ -95,6 +117,10 @@ export function CreateExpenseDialog({
         paymentMethod: formData.paymentMethod,
         amount: amount,
         status: "imported",
+        accountId:
+          formData.accountId === "none"
+            ? undefined
+            : formData.accountId || undefined,
       };
 
       await createExpense(expense);
@@ -237,6 +263,41 @@ export function CreateExpenseDialog({
               onChange={(e) => handleInputChange("amount", e.target.value)}
               className="col-span-3"
             />
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="account" className="text-right">
+              Account
+            </Label>
+            <Select
+              value={formData.accountId}
+              onValueChange={(value) => handleInputChange("accountId", value)}
+              disabled={isLoadingAccounts}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue
+                  placeholder={
+                    isLoadingAccounts
+                      ? "Loading accounts..."
+                      : "Select account (optional)"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No account selected</SelectItem>
+                {accounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {account.name} ({account.accountType}) -{" "}
+                    {new Intl.NumberFormat("en-KE", {
+                      style: "currency",
+                      currency: account.currency || "KES",
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    }).format(account.balance)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-4 items-center gap-4">

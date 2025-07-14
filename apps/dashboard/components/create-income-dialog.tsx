@@ -22,12 +22,12 @@ import {
 } from "@workspace/ui/components/select";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { CirclePlus, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { income } from "@/constants/categories";
 import { paymentMethods } from "@/constants/payment-methods";
-import { createIncome } from "@/lib/api";
-import { Income } from "@/types/schema";
+import { createIncome, getAccounts } from "@/lib/api";
+import { Account, Income } from "@/types/schema";
 
 interface CreateIncomeDialogProps {
   onIncomeCreated?: () => void;
@@ -38,6 +38,8 @@ export function CreateIncomeDialog({
 }: CreateIncomeDialogProps) {
   const [open, setOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
     source: "",
@@ -48,6 +50,7 @@ export function CreateIncomeDialog({
     originalAmount: "",
     currency: "KES",
     isRecurring: false,
+    accountId: "",
   });
 
   const handleInputChange = (field: string, value: string | boolean) => {
@@ -65,8 +68,27 @@ export function CreateIncomeDialog({
       originalAmount: "",
       currency: "KES",
       isRecurring: false,
+      accountId: "",
     });
   };
+
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      try {
+        setIsLoadingAccounts(true);
+        const response = await getAccounts(0, 100);
+        setAccounts(response.accounts);
+      } catch (error) {
+        console.error("Failed to fetch accounts:", error);
+      } finally {
+        setIsLoadingAccounts(false);
+      }
+    };
+
+    if (open) {
+      fetchAccounts();
+    }
+  }, [open]);
 
   const handleSubmit = async () => {
     // Validation
@@ -119,6 +141,10 @@ export function CreateIncomeDialog({
         isRecurring: formData.isRecurring,
         originalAmount: originalAmount,
         status: "imported",
+        accountId:
+          formData.accountId === "none"
+            ? undefined
+            : formData.accountId || undefined,
       };
 
       await createIncome(income);
@@ -282,6 +308,41 @@ export function CreateIncomeDialog({
                 <SelectItem value="USD">USD</SelectItem>
                 <SelectItem value="EUR">EUR</SelectItem>
                 <SelectItem value="GBP">GBP</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="account" className="text-right">
+              Account
+            </Label>
+            <Select
+              value={formData.accountId}
+              onValueChange={(value) => handleInputChange("accountId", value)}
+              disabled={isLoadingAccounts}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue
+                  placeholder={
+                    isLoadingAccounts
+                      ? "Loading accounts..."
+                      : "Select account (optional)"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No account selected</SelectItem>
+                {accounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {account.name} ({account.accountType}) -{" "}
+                    {new Intl.NumberFormat("en-KE", {
+                      style: "currency",
+                      currency: account.currency || "KES",
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    }).format(account.balance)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

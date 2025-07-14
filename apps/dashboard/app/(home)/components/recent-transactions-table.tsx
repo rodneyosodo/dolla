@@ -135,9 +135,10 @@ export function RecentTransactionsTable() {
           {/* Table Header */}
           <div className="grid grid-cols-12 gap-4 px-3 py-2 text-sm font-medium text-muted-foreground border-b">
             <div className="col-span-1"></div>
-            <div className="col-span-4">Description</div>
+            <div className="col-span-3">Description</div>
+            <div className="col-span-2">Account</div>
             <div className="col-span-2">Category</div>
-            <div className="col-span-2">Type</div>
+            <div className="col-span-1">Type</div>
             <div className="col-span-2">Date</div>
             <div className="col-span-1 text-right">Amount</div>
           </div>
@@ -155,10 +156,17 @@ export function RecentTransactionsTable() {
                 </div>
 
                 {/* Description */}
-                <div className="col-span-4">
+                <div className="col-span-3">
                   <div className="font-medium text-sm truncate">
                     {transaction.description || "No description"}
                   </div>
+                </div>
+
+                {/* Account */}
+                <div className="col-span-2">
+                  <span className="text-sm text-muted-foreground">
+                    {transaction.accountId ? "Account" : "No Account"}
+                  </span>
                 </div>
 
                 {/* Category */}
@@ -169,7 +177,7 @@ export function RecentTransactionsTable() {
                 </div>
 
                 {/* Type Badge */}
-                <div className="col-span-2">
+                <div className="col-span-1">
                   {getTransactionBadge(transaction.type)}
                 </div>
 

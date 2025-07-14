@@ -18,9 +18,9 @@ function Slider({
       Array.isArray(value)
         ? value
         : Array.isArray(defaultValue)
-        ? defaultValue
-        : [min, max],
-    [value, defaultValue, min, max]
+          ? defaultValue
+          : [min, max],
+    [value, defaultValue, min, max],
   );
 
   return (
@@ -32,14 +32,14 @@ function Slider({
       max={max}
       className={cn(
         "relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
-        className
+        className,
       )}
       {...props}
     >
       <SliderPrimitive.Track
         data-slot="slider-track"
         className={cn(
-          "bg-muted relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5"
+          "bg-muted relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5",
         )}
       >
         <SliderPrimitive.Range
@@ -49,8 +49,8 @@ function Slider({
             (_values?.[0] ?? 0) > max
               ? "bg-red-300"
               : (_values?.[0] ?? 0) === max
-              ? "bg-yellow-300"
-              : "bg-green-300"
+                ? "bg-yellow-300"
+                : "bg-green-300",
           )}
         />
       </SliderPrimitive.Track>

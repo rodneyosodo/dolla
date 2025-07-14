@@ -29,6 +29,12 @@ type Repository interface {
 	DeleteBudget(ctx context.Context, userID, id string) error
 	GetBudgetSummary(ctx context.Context, userID, month string) (BudgetSummary, error)
 	CalculateBudgetProgress(ctx context.Context, userID, month string) error
+
+	CreateAccount(ctx context.Context, accounts ...Account) error
+	GetAccount(ctx context.Context, userID, id string) (Account, error)
+	ListAccounts(ctx context.Context, userID string, query Query) (AccountPage, error)
+	UpdateAccount(ctx context.Context, account Account) error
+	DeleteAccount(ctx context.Context, userID, id string) error
 }
 
 type Service interface {
@@ -58,4 +64,10 @@ type Service interface {
 	DeleteBudget(ctx context.Context, userID, id string) error
 	GetBudgetSummary(ctx context.Context, userID, month string) (BudgetSummary, error)
 	CalculateBudgetProgress(ctx context.Context, userID, month string) error
+
+	CreateAccount(ctx context.Context, accounts ...Account) error
+	GetAccount(ctx context.Context, userID, id string) (Account, error)
+	ListAccounts(ctx context.Context, userID string, query Query) (AccountPage, error)
+	UpdateAccount(ctx context.Context, account Account) error
+	DeleteAccount(ctx context.Context, userID, id string) error
 }

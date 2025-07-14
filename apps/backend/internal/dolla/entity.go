@@ -176,6 +176,7 @@ type Expense struct {
 	BaseEntity
 
 	UserID        string        `db:"user_id"        json:"userId"`
+	AccountID     string        `db:"account_id"     json:"accountId"`
 	Date          Date          `db:"date"           json:"date"`
 	Merchant      string        `db:"merchant"       json:"merchant"`
 	Category      Category      `db:"category"       json:"category"`
@@ -189,6 +190,7 @@ type Income struct {
 	BaseEntity
 
 	UserID         string        `db:"user_id"         json:"userId"`
+	AccountID      string        `db:"account_id"      json:"accountId"`
 	Date           Date          `db:"date"            json:"date"`
 	Source         string        `db:"source"          json:"source"`
 	Category       Category      `db:"category"        json:"category"`
@@ -248,4 +250,21 @@ type BudgetSummary struct {
 	CategoriesOverspent   int     `json:"categoriesOverspent"`
 	CategoriesOnTrack     int     `json:"categoriesOnTrack"`
 	CategoriesWithBudgets int     `json:"categoriesWithBudgets"`
+}
+
+type Account struct {
+	BaseEntity
+	UserID      string  `db:"user_id"      json:"userId"`
+	Name        string  `db:"name"         json:"name"`
+	AccountType string  `db:"account_type" json:"accountType"`
+	Balance     float64 `db:"balance"      json:"balance"`
+	Currency    string  `db:"currency"     json:"currency"`
+	Description string  `db:"description"  json:"description"`
+}
+
+type AccountPage struct {
+	Offset   uint64    `json:"offset"`
+	Limit    uint64    `json:"limit"`
+	Total    uint64    `json:"total"`
+	Accounts []Account `json:"accounts"`
 }

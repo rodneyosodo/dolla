@@ -13,6 +13,7 @@ import {
   ArrowLeftRight,
   ChartArea,
   Command,
+  CreditCard,
   LifeBuoy,
   Notebook,
   Send,
@@ -49,6 +50,11 @@ const data = {
       title: "Budget",
       url: "/budget",
       icon: Notebook,
+    },
+    {
+      title: "Accounts",
+      url: "/accounts",
+      icon: CreditCard,
     },
   ],
   navSecondary: [

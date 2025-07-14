@@ -2,6 +2,8 @@
 
 import { auth } from "@clerk/nextjs/server";
 import {
+  Account,
+  AccountResponse,
   Budget,
   BudgetResponse,
   BudgetSummary,
@@ -60,8 +62,7 @@ export async function getIncomes(
     );
   }
 
-  const data = await response.json();
-  return data;
+  return await response.json();
 }
 
 export async function getExpenses(
@@ -81,8 +82,7 @@ export async function getExpenses(
     throw new Error(`Failed to fetch expenses: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  return await response.json();
 }
 
 export async function uploadStatement(
@@ -109,8 +109,7 @@ export async function uploadStatement(
     throw new Error(`Failed to upload statement: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  return await response.json();
 }
 
 export async function createIncome(
@@ -127,8 +126,7 @@ export async function createIncome(
     throw new Error(`Failed to create income: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  return await response.json();
 }
 
 export async function createExpense(
@@ -145,8 +143,7 @@ export async function createExpense(
     throw new Error(`Failed to create expense: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  return await response.json();
 }
 
 export async function updateIncome(
@@ -164,8 +161,7 @@ export async function updateIncome(
     throw new Error(`Failed to update income: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  return await response.json();
 }
 
 export async function deleteIncome(id: string): Promise<{ message: string }> {
@@ -179,8 +175,7 @@ export async function deleteIncome(id: string): Promise<{ message: string }> {
     throw new Error(`Failed to delete income: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  return await response.json();
 }
 
 export async function updateExpense(
@@ -198,8 +193,7 @@ export async function updateExpense(
     throw new Error(`Failed to update expense: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  return await response.json();
 }
 
 export async function deleteExpense(id: string): Promise<{ message: string }> {
@@ -213,8 +207,7 @@ export async function deleteExpense(id: string): Promise<{ message: string }> {
     throw new Error(`Failed to delete expense: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  return await response.json();
 }
 
 // Budget API Functions
@@ -242,8 +235,7 @@ export async function getBudgets(
     throw new Error(`Failed to fetch budgets: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  return await response.json();
 }
 
 export async function createBudget(
@@ -268,8 +260,7 @@ export async function createBudget(
     throw new Error(`Failed to create budget: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  return await response.json();
 }
 
 export async function updateBudget(
@@ -287,8 +278,7 @@ export async function updateBudget(
     throw new Error(`Failed to update budget: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  return await response.json();
 }
 
 export async function deleteBudget(id: string): Promise<{ message: string }> {
@@ -302,8 +292,7 @@ export async function deleteBudget(id: string): Promise<{ message: string }> {
     throw new Error(`Failed to delete budget: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  return await response.json();
 }
 
 export async function getBudgetSummary(month: string): Promise<BudgetSummary> {
@@ -320,8 +309,7 @@ export async function getBudgetSummary(month: string): Promise<BudgetSummary> {
     throw new Error(`Failed to fetch budget summary: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  return await response.json();
 }
 
 export async function calculateBudgetProgress(
@@ -342,8 +330,7 @@ export async function calculateBudgetProgress(
     );
   }
 
-  const data = await response.json();
-  return data;
+  return await response.json();
 }
 
 // Dashboard Totals API Functions
@@ -489,6 +476,7 @@ export interface RecentTransaction {
   amount: number;
   type: "income" | "expense";
   category: string;
+  accountId?: string;
 }
 
 export async function getRecentTransactions(
@@ -508,6 +496,7 @@ export async function getRecentTransactions(
         amount: income.amount,
         type: "income" as const,
         category: income.category,
+        accountId: income.accountId,
       })),
       ...expenses.expenses.map((expense) => ({
         id: expense.id,
@@ -516,6 +505,7 @@ export async function getRecentTransactions(
         amount: expense.amount,
         type: "expense" as const,
         category: expense.category,
+        accountId: expense.accountId,
       })),
     ];
 
@@ -547,8 +537,7 @@ export async function completeOnboarding(
     throw new Error(errorData.error || "Failed to complete onboarding");
   }
 
-  const result = await response.json();
-  return result;
+  return await response.json();
 }
 
 export async function getProfile(clerkUserId: string): Promise<any> {
@@ -568,6 +557,107 @@ export async function getProfile(clerkUserId: string): Promise<any> {
     throw new Error(errorData.error || "Failed to get profile");
   }
 
-  const result = await response.json();
-  return result;
+  return await response.json();
+}
+
+// Account API Functions
+export async function getAccounts(
+  offset = 0,
+  limit = 100,
+): Promise<AccountResponse> {
+  const headers = await getAuthHeaders();
+  const response = await fetch(
+    `${API_BASE_URL}/accounts?offset=${offset}&limit=${limit}`,
+    {
+      cache: "no-store",
+      headers,
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch accounts: ${response.statusText}`);
+  }
+
+  return await response.json();
+}
+
+export async function getAccount(id: string): Promise<Account> {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_BASE_URL}/accounts/${id}`, {
+    cache: "no-store",
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch account: ${response.statusText}`);
+  }
+
+  return await response.json();
+}
+
+export async function createAccount(
+  account: Omit<Account, "id" | "userId" | "balance">,
+): Promise<{ message: string }> {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_BASE_URL}/accounts`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify([{ ...account, balance: 0 }]),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to create account: ${response.statusText}`);
+  }
+
+  return await response.json();
+}
+
+export async function updateAccount(
+  id: string,
+  account: Partial<Account>,
+): Promise<{ message: string }> {
+  const headers = await getAuthHeaders();
+
+  // First, verify that the account exists and belongs to the authenticated user
+  const existingAccount = await getAccount(id);
+  const { userId } = await auth();
+
+  if (existingAccount.userId !== userId) {
+    throw new Error("Unauthorized: You can only update accounts you own");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/accounts/${id}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify(account),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to update account: ${response.statusText}`);
+  }
+
+  return await response.json();
+}
+
+export async function deleteAccount(id: string): Promise<{ message: string }> {
+  const headers = await getAuthHeaders();
+
+  // First, verify that the account exists and belongs to the authenticated user
+  const existingAccount = await getAccount(id);
+  const { userId } = await auth();
+
+  if (existingAccount.userId !== userId) {
+    throw new Error("Unauthorized: You can only delete accounts you own");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/accounts/${id}`, {
+    method: "DELETE",
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to delete account: ${response.statusText}`);
+  }
+
+  return await response.json();
 }
