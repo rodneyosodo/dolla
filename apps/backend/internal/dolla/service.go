@@ -7,19 +7,22 @@ import (
 	"fmt"
 	"mime/multipart"
 	"net/http"
+	"os"
 
 	"github.com/google/uuid"
 )
 
 type service struct {
-	repo            Repository
-	pdfExtractorURL string
+	repo             Repository
+	pdfExtractorURL  string
+	receiptProcessor *ReceiptProcessor
 }
 
-func NewService(repo Repository, pdfExtractorURL string) Service {
+func NewService(repo Repository, pdfExtractorURL string, receiptProcessor *ReceiptProcessor) Service {
 	return &service{
-		repo:            repo,
-		pdfExtractorURL: pdfExtractorURL,
+		repo:             repo,
+		pdfExtractorURL:  pdfExtractorURL,
+		receiptProcessor: receiptProcessor,
 	}
 }
 
@@ -220,4 +223,36 @@ func (s *service) GetBudgetSummary(ctx context.Context, userID, month string) (B
 
 func (s *service) CalculateBudgetProgress(ctx context.Context, userID, month string) error {
 	return s.repo.CalculateBudgetProgress(ctx, userID, month)
+}
+
+func (s *service) UploadReceipt(ctx context.Context, userID string, receiptFile []byte) error {
+	if s.receiptProcessor == nil {
+		return fmt.Errorf("receipt processor not initialized")
+	}
+
+	file, err := os.CreateTemp("", fmt.Sprintf("receipt-%s-*", userID))
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+
+	defer os.Remove(file.Name())
+
+	if _, err := file.Write(receiptFile); err != nil {
+		return fmt.Errorf("failed to write receipt file: %w", err)
+	}
+
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("failed to close temp file: %w", err)
+	}
+
+	expense, err := s.receiptProcessor.ProcessReceiptToExpense(file.Name(), userID)
+	if err != nil {
+		return fmt.Errorf("failed to process receipt: %w", err)
+	}
+
+	if err := s.CreateExpense(ctx, expense...); err != nil {
+		return fmt.Errorf("failed to create expense from receipt: %w", err)
+	}
+
+	return nil
 }

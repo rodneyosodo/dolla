@@ -33,6 +33,8 @@ type config struct {
 	DBFile          string `env:"DOLLA_BACKEND_DB_FILE"           envDefault:"db.sqlite3"`
 	GinMode         string `env:"DOLLA_BACKEND_GIN_MODE"          envDefault:"release"`
 	PDFExtractorURL string `env:"DOLLA_BACKEND_PDF_EXTRACTOR_URL" envDefault:"http://localhost:9000/extract"`
+	OpenAIKey       string `env:"DOLLA_BACKEND_OPENAI_KEY"        envDefault:""`
+	OpenAIModel     string `env:"DOLLA_BACKEND_OPENAI_MODEL"      envDefault:"gpt-4o-mini"`
 }
 
 func main() {
@@ -71,7 +73,12 @@ func main() {
 
 	slog.Info("successfully connected to sqlite3 database")
 
-	svc := dolla.NewService(repo, cfg.PDFExtractorURL)
+	var receiptProcessor *dolla.ReceiptProcessor
+	if cfg.OpenAIKey != "" {
+		receiptProcessor = dolla.NewReceiptProcessor(cfg.OpenAIKey, cfg.OpenAIModel)
+	}
+
+	svc := dolla.NewService(repo, cfg.PDFExtractorURL, receiptProcessor)
 
 	gin.SetMode(cfg.GinMode)
 

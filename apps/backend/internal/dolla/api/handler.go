@@ -31,5 +31,7 @@ func NewHandler(svc dolla.Service, router *gin.Engine) *gin.Engine {
 	router.GET("/budgets/summary", getBudgetSummary(svc))
 	router.POST("/budgets/calculate", calculateBudgetProgress(svc))
 
+	router.POST("/receipts/upload", uploadReceipt(svc))
+
 	return router
 }

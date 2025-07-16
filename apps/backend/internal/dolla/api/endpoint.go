@@ -1,6 +1,7 @@
 package api
 
 import (
+	"io"
 	"net/http"
 	"strconv"
 
@@ -500,6 +501,44 @@ func calculateBudgetProgress(svc dolla.Service) func(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"message": "Budget progress calculated successfully"})
+	}
+}
+
+func uploadReceipt(svc dolla.Service) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
+		file, err := c.FormFile("file")
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+			return
+		}
+
+		fileContent, err := file.Open()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer fileContent.Close()
+
+		fileData, err := io.ReadAll(fileContent)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		if err := svc.UploadReceipt(c.Request.Context(), userID, fileData); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Receipt processed successfully"})
 	}
 }
 

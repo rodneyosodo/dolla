@@ -40,6 +40,8 @@ services:
       - DOLLA_BACKEND_DB_FILE=/db/db.sqlite3
       - DOLLA_BACKEND_GIN_MODE=release
       - DOLLA_BACKEND_PDF_EXTRACTOR_URL=http://dolla-pdf-extractor:9000/extract
+      - DOLLA_BACKEND_OPENAI_KEY=${DOLLA_BACKEND_OPENAI_KEY}
+      - DOLLA_BACKEND_OPENAI_MODEL=${DOLLA_BACKEND_OPENAI_MODEL}
 
   dolla-dashboard:
     image: ghcr.io/rodneyosodo/dolla/dashboard:latest

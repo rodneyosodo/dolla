@@ -58,4 +58,6 @@ type Service interface {
 	DeleteBudget(ctx context.Context, userID, id string) error
 	GetBudgetSummary(ctx context.Context, userID, month string) (BudgetSummary, error)
 	CalculateBudgetProgress(ctx context.Context, userID, month string) error
+
+	UploadReceipt(ctx context.Context, userID string, file []byte) error
 }
