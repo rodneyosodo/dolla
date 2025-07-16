@@ -9,6 +9,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/samber/slog-gin v1.15.1
+	gocv.io/x/gocv v0.41.0
 	golang.org/x/sync v0.15.0
 	modernc.org/sqlite v1.38.0
 )
