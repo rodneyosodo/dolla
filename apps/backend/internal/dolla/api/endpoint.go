@@ -521,3 +521,146 @@ func getQueryParams(c *gin.Context) (dolla.Query, error) {
 		Limit:  l,
 	}, nil
 }
+
+func createAccounts(svc dolla.Service) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
+		var accounts []dolla.Account
+		if err := c.ShouldBindJSON(&accounts); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+			return
+		}
+		for i := range accounts {
+			if accounts[i].Name == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "account name is required"})
+
+				return
+			}
+			if accounts[i].AccountType == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "account type is required"})
+
+				return
+			}
+		}
+
+		// Set user ID for all accounts
+		for i := range accounts {
+			accounts[i].UserID = userID
+		}
+
+		if err := svc.CreateAccount(c.Request.Context(), accounts...); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "ok"})
+	}
+}
+
+func getAccount(svc dolla.Service) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
+		id := c.Param("id")
+		account, err := svc.GetAccount(c.Request.Context(), userID, id)
+		if err != nil {
+			if err.Error() == "account not found" {
+				c.JSON(http.StatusNotFound, gin.H{"error": "account not found"})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			}
+
+			return
+		}
+
+		c.JSON(http.StatusOK, account)
+	}
+}
+
+func listAccounts(svc dolla.Service) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
+		query, err := getQueryParams(c)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+			return
+		}
+
+		accounts, err := svc.ListAccounts(c.Request.Context(), userID, query)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+			return
+		}
+
+		c.JSON(http.StatusOK, accounts)
+	}
+}
+
+func updateAccount(svc dolla.Service) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+		id := c.Param("id")
+		var account dolla.Account
+		if err := c.ShouldBindJSON(&account); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+			return
+		}
+		account.ID = id
+		account.UserID = userID
+
+		if err := svc.UpdateAccount(c.Request.Context(), account); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "ok"})
+	}
+}
+
+func deleteAccount(svc dolla.Service) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		userID := getUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID required"})
+
+			return
+		}
+
+		id := c.Param("id")
+		if err := svc.DeleteAccount(c.Request.Context(), userID, id); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "ok"})
+	}
+}

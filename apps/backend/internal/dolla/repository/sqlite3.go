@@ -23,6 +23,7 @@ const (
 		active BOOLEAN DEFAULT TRUE,
 		meta JSONB DEFAULT '{}',
 		user_id VARCHAR(255) NOT NULL,
+		account_id VARCHAR(255),
 		date VARCHAR(10),
 		merchant VARCHAR(1024),
 		category VARCHAR(255),
@@ -41,6 +42,7 @@ const (
 		active BOOLEAN DEFAULT TRUE,
 		meta JSONB DEFAULT '{}',
 		user_id VARCHAR(255) NOT NULL,
+		account_id VARCHAR(255),
 		date VARCHAR(10),
 		source VARCHAR(1024),
 		category VARCHAR(255),
@@ -87,6 +89,24 @@ const (
 		is_overspent BOOLEAN DEFAULT FALSE,
 		UNIQUE(user_id, month, category)
 	);
+
+	CREATE TABLE IF NOT EXISTS accounts (
+		id UUID PRIMARY KEY,
+		date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		created_by VARCHAR(255),
+		date_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_by VARCHAR(255),
+		active BOOLEAN DEFAULT TRUE,
+		meta JSONB DEFAULT '{}',
+		user_id VARCHAR(255) NOT NULL,
+		name VARCHAR(255) NOT NULL,
+		account_type VARCHAR(255) NOT NULL,
+		balance REAL DEFAULT 0.0,
+		currency VARCHAR(255) DEFAULT 'KES',
+		description TEXT,
+		UNIQUE(user_id, name)
+	);
+
 	`
 
 	percent           = 100.0
@@ -126,10 +146,10 @@ func (r *sqlite3) CreateIncome(ctx context.Context, incomes ...dolla.Income) err
 	for i := range incomes {
 		query := `INSERT INTO incomes
 		(id, date_created, created_by, date_updated, updated_by, active, meta,
-		user_id, date, source, category, description, payment_method, amount, currency,
+		user_id, account_id, date, source, category, description, payment_method, amount, currency,
 		is_recurring, original_amount, status)
 		VALUES (:id, :date_created, :created_by, :date_updated, :updated_by,
-		:active, :meta, :user_id, :date, :source, :category, :description, :payment_method,
+		:active, :meta, :user_id, :account_id, :date, :source, :category, :description, :payment_method,
 		:amount, :currency, :is_recurring, :original_amount, :status)`
 
 		if _, err := tx.NamedExecContext(ctx, query, incomes[i]); err != nil {
@@ -138,6 +158,28 @@ func (r *sqlite3) CreateIncome(ctx context.Context, incomes ...dolla.Income) err
 			}
 
 			return err
+		}
+
+		if incomes[i].AccountID != "" {
+			// First verify the account exists and belongs to the user
+			var count int
+			checkQuery := `SELECT COUNT(*) FROM accounts WHERE id = $1 AND user_id = $2 AND active = true`
+			if err := tx.QueryRowContext(ctx, checkQuery, incomes[i].AccountID, incomes[i].UserID).Scan(&count); err != nil || count == 0 {
+				if err := tx.Rollback(); err != nil {
+					slog.Error("failed to rollback transaction", slog.String("err", err.Error()))
+				}
+
+				return fmt.Errorf("account not found or does not belong to user")
+			}
+
+			updateAccountQuery := `UPDATE accounts SET balance = balance + $1 WHERE id = $2 AND user_id = $3 AND active = true`
+			if _, err := tx.ExecContext(ctx, updateAccountQuery, incomes[i].Amount, incomes[i].AccountID, incomes[i].UserID); err != nil {
+				if err := tx.Rollback(); err != nil {
+					slog.Error("failed to rollback transaction", slog.String("err", err.Error()))
+				}
+
+				return err
+			}
 		}
 	}
 
@@ -283,9 +325,9 @@ func (r *sqlite3) CreateExpense(ctx context.Context, expenses ...dolla.Expense) 
 	for i := range expenses {
 		query := `INSERT INTO expenses
 		(id, date_created, created_by, date_updated, updated_by, active, meta,
-		user_id, date, merchant, category, description, payment_method, amount, status)
+		user_id, account_id, date, merchant, category, description, payment_method, amount, status)
 		VALUES (:id, :date_created, :created_by, :date_updated, :updated_by,
-		:active, :meta, :user_id, :date, :merchant, :category, :description, :payment_method,
+		:active, :meta, :user_id, :account_id, :date, :merchant, :category, :description, :payment_method,
 		:amount, :status)`
 
 		if _, err := tx.NamedExecContext(ctx, query, expenses[i]); err != nil {
@@ -294,6 +336,17 @@ func (r *sqlite3) CreateExpense(ctx context.Context, expenses ...dolla.Expense) 
 			}
 
 			return err
+		}
+
+		if expenses[i].AccountID != "" {
+			updateAccountQuery := `UPDATE accounts SET balance = balance - $1 WHERE id = $2 AND user_id = $3 AND active = true`
+			if _, err := tx.ExecContext(ctx, updateAccountQuery, expenses[i].Amount, expenses[i].AccountID, expenses[i].UserID); err != nil {
+				if err := tx.Rollback(); err != nil {
+					slog.Error("failed to rollback transaction", slog.String("err", err.Error()))
+				}
+
+				return err
+			}
 		}
 	}
 
@@ -873,6 +926,146 @@ func (r *sqlite3) CalculateBudgetProgress(ctx context.Context, userID, month str
 	}
 
 	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *sqlite3) CreateAccount(ctx context.Context, accounts ...dolla.Account) error {
+	if len(accounts) == 0 {
+		return nil
+	}
+
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	for i := range accounts {
+		query := `INSERT INTO accounts
+		(id, date_created, created_by, date_updated, updated_by, active, meta,
+		user_id, name, account_type, balance, currency, description)
+		VALUES (:id, :date_created, :created_by, :date_updated, :updated_by,
+		:active, :meta, :user_id, :name, :account_type, :balance, :currency, :description)`
+
+		if _, err := tx.NamedExecContext(ctx, query, accounts[i]); err != nil {
+			if err := tx.Rollback(); err != nil {
+				slog.Error("failed to rollback transaction", slog.String("err", err.Error()))
+			}
+
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		if err := tx.Rollback(); err != nil {
+			slog.Error("failed to rollback transaction", slog.String("err", err.Error()))
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func (r *sqlite3) GetAccount(ctx context.Context, userID, id string) (dolla.Account, error) {
+	query := `SELECT * FROM accounts WHERE id = $1 AND user_id = $2 AND active = true`
+	rows, err := r.db.QueryxContext(ctx, query, id, userID)
+	if err != nil {
+		return dolla.Account{}, err
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			slog.Error("failed to close rows", slog.String("err", err.Error()))
+		}
+	}()
+
+	if rows.Next() {
+		var account dolla.Account
+		if err := rows.StructScan(&account); err != nil {
+			return dolla.Account{}, err
+		}
+
+		return account, nil
+	}
+
+	return dolla.Account{}, errors.New("account not found")
+}
+
+func (r *sqlite3) ListAccounts(ctx context.Context, userID string, query dolla.Query) (dolla.AccountPage, error) {
+	q := fmt.Sprintf(
+		`SELECT * FROM accounts WHERE user_id = $1 AND active = true LIMIT %d OFFSET %d`, query.Limit, query.Offset,
+	)
+	rows, err := r.db.QueryxContext(ctx, q, userID)
+	if err != nil {
+		return dolla.AccountPage{}, err
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			slog.Error("failed to close rows", slog.String("err", err.Error()))
+		}
+	}()
+
+	accounts := make([]dolla.Account, 0)
+	for rows.Next() {
+		var account dolla.Account
+		if err := rows.StructScan(&account); err != nil {
+			return dolla.AccountPage{}, err
+		}
+
+		accounts = append(accounts, account)
+	}
+
+	tq := `SELECT COUNT(*) FROM accounts WHERE user_id = $1 AND active = true`
+	rows, err = r.db.QueryxContext(ctx, tq, userID)
+	if err != nil {
+		return dolla.AccountPage{}, err
+	}
+
+	total := uint64(0)
+	if rows.Next() {
+		if err := rows.Scan(&total); err != nil {
+			return dolla.AccountPage{}, err
+		}
+	}
+
+	return dolla.AccountPage{
+		Offset:   query.Offset,
+		Limit:    query.Limit,
+		Total:    total,
+		Accounts: accounts,
+	}, nil
+}
+
+func (r *sqlite3) UpdateAccount(ctx context.Context, account dolla.Account) error {
+	queries := []string{
+		`date_updated = :date_updated`,
+	}
+	if account.Name != "" {
+		queries = append(queries, `name = :name`)
+	}
+	if account.AccountType != "" {
+		queries = append(queries, `account_type = :account_type`)
+	}
+	if account.Currency != "" {
+		queries = append(queries, `currency = :currency`)
+	}
+	if account.Description != "" {
+		queries = append(queries, `description = :description`)
+	}
+
+	query := fmt.Sprintf(`UPDATE accounts SET %s WHERE id = :id AND active = true`, strings.Join(queries, ", "))
+	if _, err := r.db.NamedExecContext(ctx, query, account); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *sqlite3) DeleteAccount(ctx context.Context, userID, id string) error {
+	query := `UPDATE accounts SET active = false WHERE id = $1 AND user_id = $2`
+	if _, err := r.db.ExecContext(ctx, query, id, userID); err != nil {
 		return err
 	}
 

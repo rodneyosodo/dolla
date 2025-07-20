@@ -64,6 +64,24 @@ export const createColumns = (
     enableHiding: true,
   },
   {
+    accessorKey: "accountId",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Account" />
+    ),
+    cell: ({ row }) => {
+      const accountId = row.getValue("accountId");
+      return (
+        <div className="flex space-x-2">
+          <span className="max-w-[100px] truncate text-muted-foreground">
+            {accountId ? "Account" : "No Account"}
+          </span>
+        </div>
+      );
+    },
+    enableSorting: true,
+    enableHiding: true,
+  },
+  {
     accessorKey: "category",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Category" />

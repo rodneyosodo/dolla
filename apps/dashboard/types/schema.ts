@@ -5,6 +5,7 @@ import { paymentMethods } from "@/constants/payment-methods";
 export const expenseSchema = z.object({
   id: z.string(),
   userId: z.string(),
+  accountId: z.string().optional(),
   date: z.string(),
   merchant: z.string(),
   category: z.enum(expense as [string, ...string[]]),
@@ -25,6 +26,7 @@ export type Expense = z.infer<typeof expenseSchema>;
 export const incomeSchema = z.object({
   id: z.string(),
   userId: z.string(),
+  accountId: z.string().optional(),
   date: z.string(),
   source: z.string(),
   category: z.enum(income as [string, ...string[]]),
@@ -80,4 +82,29 @@ export interface BudgetSummary {
   overallPercentageUsed: number;
   categoriesOverspent: number;
   totalCategories: number;
+}
+
+export const accountSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  name: z.string(),
+  accountType: z.string(),
+  balance: z.number(),
+  currency: z.enum(["KES", "USD", "EUR", "GBP"]).default("KES"),
+  description: z.string().optional(),
+  dateCreated: z.string().optional(),
+  createdBy: z.string().optional(),
+  dateUpdated: z.string().optional(),
+  updatedBy: z.string().optional(),
+  active: z.boolean().optional(),
+  meta: z.record(z.any()).optional(),
+});
+
+export type Account = z.infer<typeof accountSchema>;
+
+export interface AccountResponse {
+  offset: number;
+  limit: number;
+  total: number;
+  accounts: Account[];
 }

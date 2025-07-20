@@ -11,6 +11,7 @@ import { DataTableRowActions } from "./data-table-row-actions";
 
 export const createColumns = (
   onIncomeUpdated?: () => void,
+  getAccountName?: (accountId: string | undefined) => string,
 ): ColumnDef<Income>[] => [
   {
     id: "select",
@@ -55,6 +56,29 @@ export const createColumns = (
         <div className="flex space-x-2">
           <span className="max-w-[100px] truncate ">
             {row.getValue("source")}
+          </span>
+        </div>
+      );
+    },
+    enableSorting: true,
+    enableHiding: true,
+  },
+  {
+    accessorKey: "accountId",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Account" />
+    ),
+    cell: ({ row }) => {
+      const accountId = row.getValue("accountId") as string | undefined;
+      const accountName = getAccountName
+        ? getAccountName(accountId)
+        : accountId
+          ? "Account"
+          : "No Account";
+      return (
+        <div className="flex space-x-2">
+          <span className="max-w-[100px] truncate font-medium">
+            {accountName}
           </span>
         </div>
       );
