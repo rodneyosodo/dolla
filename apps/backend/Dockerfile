@@ -11,7 +11,7 @@ RUN apk update \
     && make backend \
     && mv build/backend /exe
 
-FROM alpine:3.22.0
+FROM alpine:3.22.1
 
 LABEL org.opencontainers.image.source=https://github.com/rodneyosodo/dolla
 LABEL org.opencontainers.image.description="Backend application for the dolla project"
