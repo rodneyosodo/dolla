@@ -9,10 +9,10 @@
     "lint:fix": "turbo lint:fix"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.0.6",
+    "@biomejs/biome": "2.2.2",
     "@workspace/typescript-config": "workspace:*",
-    "turbo": "^2.5.4",
-    "typescript": "5.8.3"
+    "turbo": "^2.5.6",
+    "typescript": "5.9.2"
   },
   "packageManager": "pnpm@10.12.1",
   "engines": {
