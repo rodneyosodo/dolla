@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 ARG GOOS
 ARG GOARCH
@@ -11,7 +11,7 @@ RUN apk update \
     && make backend \
     && mv build/backend /exe
 
-FROM alpine:3.22.0
+FROM alpine:3.23.2
 
 LABEL org.opencontainers.image.source=https://github.com/rodneyosodo/dolla
 LABEL org.opencontainers.image.description="Backend application for the dolla project"
